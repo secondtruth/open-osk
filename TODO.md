@@ -16,27 +16,16 @@
 - [x] Menu bar app, settings window (layout, key size, opacity, toggles)
 - [x] Unit tests (Swift Testing), Makefile, app bundle script, docs
 
-## v0.2 — typing comfort (derived from the role models)
+## Done (v0.2)
 
-From the macOS Accessibility Keyboard:
-
-- [ ] **Current-text toolbar**: show the word/line being typed directly on the
-      keyboard, so the user doesn't have to watch a distant text field
-- [ ] **Auto-capitalization** (sentence starts) and **auto-spacing** (smart space
-      after punctuation, double-space → period)
-- [ ] **Fade/hide after inactivity** (configurable), restore on hover
-- [ ] **Dwell input**: hovering a key for a configurable time presses it, with a
-      visual progress indicator on the key — for pointer-only users (head/eye
-      tracker, joystick); complements the system-wide dwell in macOS
-- [ ] **Long-press accent popup**: hold a/e/u… to pick à á â ä … (also gives
-      access to rare symbols without an extra layer)
-
-From Hot Virtual Keyboard:
-
-- [ ] **Programmable keys / macros**: keys that insert text snippets, launch
-      apps/URLs, or replay keystroke sequences (JSON-defined like layouts)
-- [ ] **Auto-show/hide when a text field gains/loses focus** (AX observers)
-- [ ] Housekeeping: app icon, German localization of UI strings
+- [x] Current-text toolbar on the keyboard
+- [x] Auto-capitalization after sentence end; double-space inserts a period
+- [x] Fade keyboard after inactivity (configurable toggle)
+- [x] Dwell input with progress indicator (keys and suggestion buttons)
+- [x] Long-press accent/symbol variant popup
+- [x] Programmable keys: text snippets and macros (text/shortcut/open/delay steps)
+- [x] Auto-show/hide keyboard on text-field focus (AX observer, opt-in)
+- [x] App icon (generated), German localization of the UI
 
 ## v0.3 — accessibility depth & developer features
 

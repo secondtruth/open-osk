@@ -12,6 +12,14 @@ offers, such as shell command completion for terminal work.
 - **Sticky modifiers**: tap ⇧/⌃/⌥/⌘ once to latch it for the next key, tap twice to
   lock it, a third tap releases it — full keyboard shortcuts (⌘C, ⌃⌥T, …) with single
   clicks
+- **Dwell input**: optionally, hovering a key presses it after a configurable delay
+  (with a progress indicator on the key) — for pointer-only users with head/eye
+  trackers or joysticks who cannot click
+- **Long-press character variants**: hold a/e/u/… to pick à á â ä € … from a popup
+- **Typing aids**: current-text bar right on the keyboard (no need to watch a distant
+  text field), auto-capitalization after sentence ends, double-space inserts a period
+- **Programmable keys / macros**: layout keys can insert snippets, press shortcut
+  sequences, or open apps/URLs (`"text"`, `"macro"` with `steps` in the layout JSON)
 - **Word prediction** with bundled German and English word lists, capitalization
   carry-over, and **learning from your own typing** (persisted across sessions)
 - **Terminal mode**: when a terminal app (Terminal, iTerm2, Warp, kitty, WezTerm,
@@ -27,9 +35,11 @@ offers, such as shell command completion for terminal work.
   key codes from the active layout (QWERTZ ⌘Z is really ⌘Z)
 - **JSON-defined layouts** (German QWERTZ and US QWERTY bundled); drop your own into
   `~/Library/Application Support/OpenOSK/Layouts/`
-- **Adjustable**: key size, opacity, per-feature toggles; follows the system
-  light/dark appearance
-- Runs as a menu bar app (no Dock icon)
+- **Adjustable**: key size, opacity, per-feature toggles; fades when idle; follows
+  the system light/dark appearance
+- Optionally **shows itself automatically** when a text field gains focus
+  (Accessibility API observer)
+- Runs as a menu bar app (no Dock icon); UI in English and German
 
 ## Requirements
 
@@ -57,8 +67,10 @@ CLI flags: `--version`, `--help`, `--smoke-test` (start, verify initialization, 
 ## Usage notes
 
 - Drag the keyboard by its background (anywhere that isn't a key).
-- The suggestion bar sits below the keys; click a suggestion to complete the
-  current word or shell token.
+- The suggestion bar sits above the keys, next to the current-text display; click
+  a suggestion to complete the current word or shell token.
+- Long-press a letter for accents and symbol variants; enable dwell in the settings
+  to press keys by hovering alone.
 - Prediction only sees what you type *through OpenOSK* — text typed on a hardware
   keyboard or completed by the shell itself is invisible to it, and the tracked
   line resets when you switch apps or move the caret.
@@ -77,6 +89,9 @@ CLI flags: `--version`, `--help`, `--smoke-test` (start, verify initialization, 
   override the bundled database per command.
 - **Word lists**: plain text, one word per line, ordered by frequency, in
   `Sources/OpenOSKCore/Resources/Wordlists/`.
+- **Macro keys**: any layout key may carry `"text": "snippet"` or a full
+  `"macro": { "steps": [ { "text": "…" }, { "shortcut": "cmd+s" },
+  { "open": "https://…" }, { "delayMs": 200 } ] }`.
 
 ## Project layout
 

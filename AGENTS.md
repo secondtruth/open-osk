@@ -40,20 +40,34 @@ Two targets plus tests:
     `LearnedWordsStore.swift` persists learning to Application Support
   - `ShellCompleter.swift` — command/subcommand/flag completion from
     `Resources/Shell/completions.json`, mergeable with a user file
+  - `TypingAids.swift` — auto-capitalization + double-space-period predicates
+  - `CharacterVariants.swift` — long-press variant table (à á â …)
+  - `Macro.swift` — programmable key model (`text`/`shortcut`/`open`/`delayMs`
+    steps) and `ShortcutParser` ("cmd+shift+s" → flags + key)
   - `Preferences.swift` — UserDefaults-backed; posts
     `Preferences.didChangeNotification` on every set
 - **`OpenOSK`** (executable, AppKit):
   - `KeyboardPanel.swift` — borderless `.nonactivatingPanel`, `canBecomeKey = false`,
     assistive-tech window level; this is what keeps focus in the target app
   - `KeyboardView.swift` — manual frame layout (no Auto Layout in the panel);
-    `KeyView` handles press visuals + autorepeat; `SuggestionBarView`
+    `KeyView` handles press visuals, autorepeat, dwell (hover-to-press with
+    progress pie) and long-press detection; `SuggestionBarView` with dwell
+    buttons; current-text bar at the top. Character/macro keys fire on mouse-up
+    (enables long-press), specials/modifiers on mouse-down (enables autorepeat).
   - `KeyboardController.swift` — central coordinator: modifier latching
     (off → latched → locked), terminal-mode detection via frontmost app bundle ID,
-    suggestion routing (words vs. shell), learning
+    suggestion routing (words vs. shell), learning, typing aids, inactivity fade,
+    macro execution, auto-show wiring
+  - `VariantPopup.swift` — non-activating popup with alternate characters,
+    dismissed via local+global mouse monitors
+  - `FocusWatcher.swift` — AXObserver on the frontmost app's focused UI element;
+    drives "show keyboard when editing text"
   - `TexterController.swift` — compose window; injects into the previously
     frontmost app by typing or pasteboard+⌘V (with clipboard restore)
   - `SettingsController.swift`, `StatusBarController.swift`, `AppDelegate.swift`,
     `main.swift` (CLI flags: `--version`, `--help`, `--smoke-test`)
+  - `L10n.swift` + `Resources/{en,de}.lproj/Localizable.strings` — UI strings via
+    `L("English key")`; keep both languages in sync when adding strings
 
 ## Conventions & gotchas
 
