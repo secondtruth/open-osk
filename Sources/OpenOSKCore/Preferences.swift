@@ -18,6 +18,14 @@ public final class Preferences {
             Keys.terminalCompletionsEnabled: true,
             Keys.texterPasteMode: true,
             Keys.wordlistLanguages: ["de", "en"],
+            Keys.autoCapitalization: true,
+            Keys.autoSpacing: true,
+            Keys.showCurrentText: true,
+            Keys.dwellEnabled: false,
+            Keys.dwellTime: 0.9,
+            Keys.inactivityFadeEnabled: true,
+            Keys.inactivityFadeDelay: 10.0,
+            Keys.autoShowOnTextFocus: false,
         ])
     }
 
@@ -30,6 +38,14 @@ public final class Preferences {
         static let terminalCompletionsEnabled = "terminalCompletionsEnabled"
         static let texterPasteMode = "texterPasteMode"
         static let wordlistLanguages = "wordlistLanguages"
+        static let autoCapitalization = "autoCapitalization"
+        static let autoSpacing = "autoSpacing"
+        static let showCurrentText = "showCurrentText"
+        static let dwellEnabled = "dwellEnabled"
+        static let dwellTime = "dwellTime"
+        static let inactivityFadeEnabled = "inactivityFadeEnabled"
+        static let inactivityFadeDelay = "inactivityFadeDelay"
+        static let autoShowOnTextFocus = "autoShowOnTextFocus"
     }
 
     public var layoutID: String {
@@ -72,6 +88,54 @@ public final class Preferences {
     public var wordlistLanguages: [String] {
         get { defaults.stringArray(forKey: Keys.wordlistLanguages) ?? ["de", "en"] }
         set { set(newValue, forKey: Keys.wordlistLanguages) }
+    }
+
+    /// Capitalize the first letter after sentence-ending punctuation.
+    public var autoCapitalization: Bool {
+        get { defaults.bool(forKey: Keys.autoCapitalization) }
+        set { set(newValue, forKey: Keys.autoCapitalization) }
+    }
+
+    /// Double-space inserts ". ".
+    public var autoSpacing: Bool {
+        get { defaults.bool(forKey: Keys.autoSpacing) }
+        set { set(newValue, forKey: Keys.autoSpacing) }
+    }
+
+    /// Show the current-text bar on the keyboard.
+    public var showCurrentText: Bool {
+        get { defaults.bool(forKey: Keys.showCurrentText) }
+        set { set(newValue, forKey: Keys.showCurrentText) }
+    }
+
+    /// Hovering a key presses it after `dwellTime`.
+    public var dwellEnabled: Bool {
+        get { defaults.bool(forKey: Keys.dwellEnabled) }
+        set { set(newValue, forKey: Keys.dwellEnabled) }
+    }
+
+    /// Dwell duration in seconds.
+    public var dwellTime: Double {
+        get { defaults.double(forKey: Keys.dwellTime) }
+        set { set(newValue, forKey: Keys.dwellTime) }
+    }
+
+    /// Fade the keyboard after a period without interaction.
+    public var inactivityFadeEnabled: Bool {
+        get { defaults.bool(forKey: Keys.inactivityFadeEnabled) }
+        set { set(newValue, forKey: Keys.inactivityFadeEnabled) }
+    }
+
+    /// Seconds of inactivity before the keyboard fades.
+    public var inactivityFadeDelay: Double {
+        get { defaults.double(forKey: Keys.inactivityFadeDelay) }
+        set { set(newValue, forKey: Keys.inactivityFadeDelay) }
+    }
+
+    /// Show the keyboard automatically when a text field gains focus.
+    public var autoShowOnTextFocus: Bool {
+        get { defaults.bool(forKey: Keys.autoShowOnTextFocus) }
+        set { set(newValue, forKey: Keys.autoShowOnTextFocus) }
     }
 
     private func set(_ value: Any, forKey key: String) {

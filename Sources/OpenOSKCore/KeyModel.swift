@@ -110,6 +110,10 @@ public struct Key: Codable, Equatable, Sendable {
     public var special: SpecialKey?
     /// Modifier key.
     public var modifier: Modifier?
+    /// Text snippet inserted verbatim (programmable key shorthand).
+    public var text: String?
+    /// Macro executed by this key (programmable key).
+    public var macro: Macro?
     /// Width in key units (1.0 = one standard key).
     public var width: Double?
     /// Display label override.
@@ -118,6 +122,7 @@ public struct Key: Codable, Equatable, Sendable {
     public init(
         base: String? = nil, shift: String? = nil, alt: String? = nil, shiftAlt: String? = nil,
         special: SpecialKey? = nil, modifier: Modifier? = nil,
+        text: String? = nil, macro: Macro? = nil,
         width: Double? = nil, label: String? = nil
     ) {
         self.base = base
@@ -126,6 +131,8 @@ public struct Key: Codable, Equatable, Sendable {
         self.shiftAlt = shiftAlt
         self.special = special
         self.modifier = modifier
+        self.text = text
+        self.macro = macro
         self.width = width
         self.label = label
     }
@@ -134,9 +141,12 @@ public struct Key: Codable, Equatable, Sendable {
         case character
         case special(SpecialKey)
         case modifier(Modifier)
+        case macro(Macro)
     }
 
     public var kind: Kind? {
+        if let macro { return .macro(macro) }
+        if let text { return .macro(Macro(steps: [MacroStep(text: text)])) }
         if let special { return .special(special) }
         if let modifier { return .modifier(modifier) }
         if base != nil { return .character }
