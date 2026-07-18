@@ -27,24 +27,28 @@
 - [x] Auto-show/hide keyboard on text-field focus (AX observer, opt-in)
 - [x] App icon (generated), German localization of the UI
 
-## v0.3 — accessibility depth & developer features
+## Done (v0.3)
 
-- [ ] **Scanning input (switch access)**: sequentially highlight key groups →
-      rows → keys; one or two external switches (or any key/click) select.
-      For users who cannot use a pointer at all.
-- [ ] **Custom panels** (Panel Editor concept): user-defined button collections
-      per task/app — e.g. a git panel, a VS Code panel; buttons carry actions
-      (text, shortcut, macro, panel switch), optional image, spoken phrase
-- [ ] **Per-app profiles**: layout + panel + mode switching per frontmost app
-- [ ] **Themes/skins** beyond scale+opacity (key shape, colors, fonts)
-- [ ] Better prediction: bigram/next-word prediction, larger frequency lists,
-      optional `/usr/share/dict/words` merge
-- [ ] Shell completion: discover commands from `$PATH`, file path completion,
-      remember frequently used commands
-- [ ] VS Code handling: detect integrated-terminal focus via AX API to enable
-      terminal mode inside editors
-- [ ] Word-by-word deletion key (⌥⌫); system control keys (volume, brightness,
-      media) as optional layout row
+- [x] Scanning input (switch access): row → key two-level scan, configurable
+      interval and switch key (global event tap, ignores own injected events)
+- [x] Custom panels (Panel Editor concept) with bundled Git and Editing panels;
+      user panels dir; open state restored across launches
+- [x] Per-app profiles (layout + forced terminal mode via app-profiles.json)
+- [x] Bigram next-word prediction learned from typing (persisted)
+- [x] $PATH command discovery for terminal completion (curated commands rank first)
+- [x] Word/line deletion via Editing panel (⌥⌫ / ⌘⌫)
+
+## v0.4 candidates
+
+- [ ] Settings UI for per-app profiles and macro/panel editing (currently JSON)
+- [ ] Panel buttons: images and spoken phrases (VoiceOver), panel-switch action
+- [ ] Two-switch scanning (manual advance + select); group-level scan for panels
+- [ ] Themes/skins beyond scale+opacity (key shape, colors, fonts)
+- [ ] Larger frequency word lists; optional `/usr/share/dict/words` merge
+- [ ] Shell completion: file path completion, frequently-used-command ranking
+- [ ] VS Code: detect integrated-terminal focus via AX (profile workaround
+      exists: terminalMode=true for com.microsoft.VSCode)
+- [ ] System control keys (volume, brightness, media) — needs NX system events
 
 ## Later
 
@@ -52,9 +56,10 @@
 - [ ] Multi-display awareness; remember panel position per display
 - [ ] Optional key click sound feedback
 - [ ] Code signing & notarization; Homebrew cask
-- [ ] Cross-platform strategy: keep data formats (layouts, wordlists,
-      completions) portable; extract core logic into a portable library with
-      native shells per OS (see discussion in project notes)
+- [ ] Cross-platform: first step is CI (GitHub Actions) building OpenOSKCore on
+      Linux with the Apple-only files (#if canImport) excluded — cheap and keeps
+      the core honest. Full ports (Windows SendInput / Wayland virtual-keyboard)
+      only once there is a machine or maintainer to test on.
 
 ## Ideas (from the original concept note)
 

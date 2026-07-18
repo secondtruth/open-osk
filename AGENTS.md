@@ -44,6 +44,9 @@ Two targets plus tests:
   - `CharacterVariants.swift` — long-press variant table (à á â …)
   - `Macro.swift` — programmable key model (`text`/`shortcut`/`open`/`delayMs`
     steps) and `ShortcutParser` ("cmd+shift+s" → flags + key)
+  - `BigramModel.swift` — next-word prediction from learned word pairs
+  - `AppProfiles.swift` — per-app overrides (layout, forced terminal mode) from
+    `app-profiles.json`
   - `Preferences.swift` — UserDefaults-backed; posts
     `Preferences.didChangeNotification` on every set
 - **`OpenOSK`** (executable, AppKit):
@@ -62,6 +65,12 @@ Two targets plus tests:
     dismissed via local+global mouse monitors
   - `FocusWatcher.swift` — AXObserver on the frontmost app's focused UI element;
     drives "show keyboard when editing text"
+  - `ScanController.swift` — scanning (switch access): two-level row→key scan;
+    the switch key is consumed via a global CGEvent tap that ignores events
+    carrying `KeyInjector.injectionSignature`
+  - `PanelsController.swift` — floating custom panels (layout JSON reused);
+    open state persisted in preferences; panels route key presses into
+    `KeyboardController.handleKey`
   - `TexterController.swift` — compose window; injects into the previously
     frontmost app by typing or pasteboard+⌘V (with clipboard restore)
   - `SettingsController.swift`, `StatusBarController.swift`, `AppDelegate.swift`,
@@ -82,5 +91,5 @@ Two targets plus tests:
   Settings) is a separate activating window.
 - Sending events requires Accessibility trust (`AXIsProcessTrustedWithOptions`).
   The smoke test deliberately skips the prompt.
-- UI strings are English for now (localization is on the TODO list); code and
-  docs are always English.
+- UI strings go through `L("English key")` with English and German
+  `Localizable.strings`; code and docs are always English.

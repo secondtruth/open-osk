@@ -20,12 +20,22 @@ offers, such as shell command completion for terminal work.
   text field), auto-capitalization after sentence ends, double-space inserts a period
 - **Programmable keys / macros**: layout keys can insert snippets, press shortcut
   sequences, or open apps/URLs (`"text"`, `"macro"` with `steps` in the layout JSON)
+- **Scanning input (switch access)**: key rows are highlighted sequentially; a
+  single switch (Space/Return/F13–F15, consumed globally) first picks the row,
+  then the key — for users who cannot operate a pointer at all
+- **Custom panels**: floating button collections in the spirit of Apple's Panel
+  Editor — a Git panel and an Editing panel ship as examples; add your own JSON to
+  `~/Library/Application Support/OpenOSK/Panels/`
+- **Per-app profiles**: force a layout or terminal mode per application (e.g.
+  terminal completions inside VS Code) via `app-profiles.json`
 - **Word prediction** with bundled German and English word lists, capitalization
-  carry-over, and **learning from your own typing** (persisted across sessions)
+  carry-over, and **learning from your own typing** (persisted across sessions),
+  plus **next-word prediction** from learned word pairs (bigrams)
 - **Terminal mode**: when a terminal app (Terminal, iTerm2, Warp, kitty, WezTerm,
   Ghostty, Alacritty, Hyper) is frontmost, the suggestion bar completes shell
   commands, subcommands, and flags (`git com…` → `commit`, `git commit --a…` →
-  `--amend`) from a bundled, user-extensible database
+  `--amend`) from a bundled, user-extensible database — plus every executable
+  found on your `$PATH`
 - **Texter**: a companion compose window for UI elements that don't cooperate with
   on-screen keyboards (looking at you, VS Code terminal). Write or dictate text in a
   normal window, then inject it into the previously focused app — by synthetic typing
@@ -92,6 +102,13 @@ CLI flags: `--version`, `--help`, `--smoke-test` (start, verify initialization, 
 - **Macro keys**: any layout key may carry `"text": "snippet"` or a full
   `"macro": { "steps": [ { "text": "…" }, { "shortcut": "cmd+s" },
   { "open": "https://…" }, { "delayMs": 200 } ] }`.
+- **Panels**: same JSON format as layouts (typically macro/text keys), in
+  `~/Library/Application Support/OpenOSK/Panels/`; open them from the menu bar
+  under "Panels". Open panels are restored on the next launch.
+- **App profiles**: `~/Library/Application Support/OpenOSK/app-profiles.json`
+  maps bundle identifiers to overrides, e.g.
+  `{ "com.microsoft.VSCode": { "terminalMode": true },
+     "com.apple.Terminal": { "layout": "qwerty-us" } }`.
 
 ## Project layout
 
