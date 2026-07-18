@@ -38,28 +38,35 @@
 - [x] $PATH command discovery for terminal completion (curated commands rank first)
 - [x] Word/line deletion via Editing panel (⌥⌫ / ⌘⌫)
 
-## v0.4 candidates
+## Done (v0.4)
 
-- [ ] Settings UI for per-app profiles and macro/panel editing (currently JSON)
-- [ ] Panel buttons: images and spoken phrases (VoiceOver), panel-switch action
-- [ ] Two-switch scanning (manual advance + select); group-level scan for panels
-- [ ] Themes/skins beyond scale+opacity (key shape, colors, fonts)
-- [ ] Larger frequency word lists; optional `/usr/share/dict/words` merge
-- [ ] Shell completion: file path completion, frequently-used-command ranking
+- [x] Themes: System, High Contrast, Dark, Light
+- [x] Media/system keys (volume, brightness, playback) + bundled System panel
+- [x] Two-switch scanning (advance key + select key)
+- [x] Macro steps: toggle panel ("panel"), speak phrase ("say")
+- [x] File path completion (absolute and ~ paths) in terminal mode
+- [x] Frequently-used-command ranking (persisted usage counts)
+- [x] Optional /usr/share/dict/words prediction fallback
+- [x] Key click sound (optional); panel position persisted across launches
+- [x] Settings shortcuts to app-profiles.json and the panels folder
+- [x] GitHub Actions CI: macOS build+test, Linux build of OpenOSKCore
+      (core is canImport-guarded; data model builds without CoreGraphics)
+
+## v0.5 candidates
+
+- [ ] Graphical editors for app profiles, macros, and panels (currently JSON)
+- [ ] Panel buttons with images; scanning across open panels
+- [ ] Larger frequency-ordered word lists (de/en)
 - [ ] VS Code: detect integrated-terminal focus via AX (profile workaround
       exists: terminalMode=true for com.microsoft.VSCode)
-- [ ] System control keys (volume, brightness, media) — needs NX system events
 
 ## Later
 
 - [ ] Layout editor UI (drag & drop) instead of hand-written JSON
-- [ ] Multi-display awareness; remember panel position per display
-- [ ] Optional key click sound feedback
 - [ ] Code signing & notarization; Homebrew cask
-- [ ] Cross-platform: first step is CI (GitHub Actions) building OpenOSKCore on
-      Linux with the Apple-only files (#if canImport) excluded — cheap and keeps
-      the core honest. Full ports (Windows SendInput / Wayland virtual-keyboard)
-      only once there is a machine or maintainer to test on.
+- [ ] Cross-platform ports (Windows SendInput / Wayland virtual-keyboard) once
+      there is a machine or maintainer to test on — the Linux CI job already
+      keeps OpenOSKCore building off-macOS.
 
 ## Ideas (from the original concept note)
 

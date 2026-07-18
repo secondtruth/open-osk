@@ -91,5 +91,9 @@ Two targets plus tests:
   Settings) is a separate activating window.
 - Sending events requires Accessibility trust (`AXIsProcessTrustedWithOptions`).
   The smoke test deliberately skips the prompt.
+- `OpenOSKCore` must keep building on Linux (CI job `linux-core`): Apple-only
+  files are wrapped in `#if canImport(...)`, and `PlatformTypes.swift` shims
+  `CGKeyCode`/`CGEventFlags` when CoreGraphics is unavailable. New core code
+  should stick to Foundation or extend the shims.
 - UI strings go through `L("English key")` with English and German
   `Localizable.strings`; code and docs are always English.

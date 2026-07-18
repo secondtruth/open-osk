@@ -1,5 +1,7 @@
 # OpenOSK — Open On-Screen Keyboard
 
+[![CI](https://github.com/secondtruth/OpenOSK/actions/workflows/ci.yml/badge.svg)](https://github.com/secondtruth/OpenOSK/actions/workflows/ci.yml)
+
 OpenOSK is an open-source on-screen keyboard and accessibility tool suite for macOS,
 built for people with limited mobility — including developers. It combines ideas from
 Hot Virtual Keyboard and the macOS Accessibility Keyboard with features that neither
@@ -22,20 +24,24 @@ offers, such as shell command completion for terminal work.
   sequences, or open apps/URLs (`"text"`, `"macro"` with `steps` in the layout JSON)
 - **Scanning input (switch access)**: key rows are highlighted sequentially; a
   single switch (Space/Return/F13–F15, consumed globally) first picks the row,
-  then the key — for users who cannot operate a pointer at all
+  then the key — for users who cannot operate a pointer at all. Optional
+  two-switch mode: one key advances the scan manually, the other selects
 - **Custom panels**: floating button collections in the spirit of Apple's Panel
-  Editor — a Git panel and an Editing panel ship as examples; add your own JSON to
-  `~/Library/Application Support/OpenOSK/Panels/`
+  Editor — Git, Editing, and System (volume/brightness/media) panels ship as
+  examples; add your own JSON to `~/Library/Application Support/OpenOSK/Panels/`.
+  Macro steps can also toggle panels (`"panel"`) and speak phrases (`"say"`)
 - **Per-app profiles**: force a layout or terminal mode per application (e.g.
   terminal completions inside VS Code) via `app-profiles.json`
 - **Word prediction** with bundled German and English word lists, capitalization
   carry-over, and **learning from your own typing** (persisted across sessions),
-  plus **next-word prediction** from learned word pairs (bigrams)
+  plus **next-word prediction** from learned word pairs (bigrams) and an
+  optional `/usr/share/dict/words` fallback
 - **Terminal mode**: when a terminal app (Terminal, iTerm2, Warp, kitty, WezTerm,
   Ghostty, Alacritty, Hyper) is frontmost, the suggestion bar completes shell
   commands, subcommands, and flags (`git com…` → `commit`, `git commit --a…` →
   `--amend`) from a bundled, user-extensible database — plus every executable
-  found on your `$PATH`
+  found on your `$PATH`, with your most-used commands ranked first, and
+  absolute/`~` **file path completion**
 - **Texter**: a companion compose window for UI elements that don't cooperate with
   on-screen keyboards (looking at you, VS Code terminal). Write or dictate text in a
   normal window, then inject it into the previously focused app — by synthetic typing
@@ -45,8 +51,9 @@ offers, such as shell command completion for terminal work.
   key codes from the active layout (QWERTZ ⌘Z is really ⌘Z)
 - **JSON-defined layouts** (German QWERTZ and US QWERTY bundled); drop your own into
   `~/Library/Application Support/OpenOSK/Layouts/`
-- **Adjustable**: key size, opacity, per-feature toggles; fades when idle; follows
-  the system light/dark appearance
+- **Adjustable**: key size, opacity, **themes** (System, High Contrast, Dark,
+  Light), optional key click sound, per-feature toggles; fades when idle;
+  remembers its position across launches and displays
 - Optionally **shows itself automatically** when a text field gains focus
   (Accessibility API observer)
 - Runs as a menu bar app (no Dock icon); UI in English and German
