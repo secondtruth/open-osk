@@ -31,3 +31,11 @@
 "Fade keyboard when inactive" = "Tastatur bei Inaktivität ausblenden";
 "Show keyboard when editing text" = "Tastatur bei Texteingabe automatisch anzeigen";
 "Clear Learned Words" = "Gelernte Wörter löschen";
+
+/* Panels & scanning */
+"Panels" = "Panels";
+"Scanning (switch access)" = "Scanning (Schalter-Steuerung)";
+"Scan interval:" = "Scan-Intervall:";
+"Switch key:" = "Schalter-Taste:";
+"Space" = "Leertaste";
+"Return" = "Return";

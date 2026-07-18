@@ -48,6 +48,31 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         layoutItem.submenu = layoutMenu
         menu.addItem(layoutItem)
 
+        let panelsMenu = NSMenu()
+        let panelsController = appDelegate.keyboardController.panels
+        let openIDs = panelsController.openPanelIDs
+        for panel in panelsController.availablePanels() {
+            let item = NSMenuItem(
+                title: panel.name,
+                action: #selector(togglePanelWindow(_:)),
+                keyEquivalent: ""
+            )
+            item.target = self
+            item.representedObject = panel.id
+            item.state = openIDs.contains(panel.id) ? .on : .off
+            panelsMenu.addItem(item)
+        }
+        let panelsItem = NSMenuItem(title: L("Panels"), action: nil, keyEquivalent: "")
+        panelsItem.submenu = panelsMenu
+        menu.addItem(panelsItem)
+
+        let scanItem = makeItem(
+            title: L("Scanning (switch access)"),
+            action: #selector(toggleScanning)
+        )
+        scanItem.state = Preferences.shared.scanningEnabled ? .on : .off
+        menu.addItem(scanItem)
+
         menu.addItem(makeItem(title: L("Settings…"), action: #selector(openSettings)))
         menu.addItem(.separator())
 
@@ -82,6 +107,15 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     @objc private func selectLayout(_ sender: NSMenuItem) {
         guard let layoutID = sender.representedObject as? String else { return }
         Preferences.shared.layoutID = layoutID
+    }
+
+    @objc private func togglePanelWindow(_ sender: NSMenuItem) {
+        guard let panelID = sender.representedObject as? String else { return }
+        appDelegate.keyboardController.panels.toggle(panelID: panelID)
+    }
+
+    @objc private func toggleScanning() {
+        Preferences.shared.scanningEnabled.toggle()
     }
 
     @objc private func openSettings() {

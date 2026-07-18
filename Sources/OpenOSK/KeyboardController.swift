@@ -46,9 +46,13 @@ final class KeyboardController: NSObject {
     private let shellCompleter = ShellCompleter()
     private let tracker = CompositionTracker()
     private let learnedStore = LearnedWordsStore()
+    private let bigrams = BigramModel.standard()
+    private let profileStore = AppProfileStore()
     private let preferences = Preferences.shared
     private let variantPopup = VariantPopup()
     private let focusWatcher = FocusWatcher()
+    private let scanController = ScanController()
+    private(set) lazy var panels = PanelsController(keyboardController: self)
 
     private let panel: KeyboardPanel
     private var keyboardView: KeyboardView!
@@ -58,6 +62,7 @@ final class KeyboardController: NSObject {
     private var didPositionPanel = false
     private var panelWasAutoShown = false
     private var inactivityTimer: Timer?
+    private var activeProfile: AppProfile?
 
     init(injector: KeyInjector, resolver: KeycodeResolver) {
         self.injector = injector
@@ -73,14 +78,49 @@ final class KeyboardController: NSObject {
         shellCompleter.loadBundled()
         shellCompleter.loadUserCompletions()
 
+        activeProfile = profileStore.profile(
+            for: NSWorkspace.shared.frontmostApplication?.bundleIdentifier)
+        applyEffectiveLayout()
         rebuildKeyboardView()
         observeEnvironment()
         refreshTerminalMode()
+        applyScanningState()
 
         focusWatcher.onTextFocusChange = { [weak self] hasTextFocus in
             self?.handleTextFocusChange(hasTextFocus)
         }
         focusWatcher.attach(to: NSWorkspace.shared.frontmostApplication)
+
+        // Discover bare commands on $PATH for terminal completion.
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            let names = ShellCompleter.executableNames(
+                inDirectories: ShellCompleter.defaultSearchDirectories)
+            DispatchQueue.main.async {
+                self?.shellCompleter.addDiscoveredCommands(names: names)
+            }
+        }
+    }
+
+    /// The layout that should be active considering the frontmost app's
+    /// profile; returns true if the layout changed.
+    @discardableResult
+    private func applyEffectiveLayout() -> Bool {
+        let desiredID = activeProfile?.layout ?? preferences.layoutID
+        guard desiredID != layout.id, let desired = LayoutStore.layout(id: desiredID) else {
+            return false
+        }
+        layout = desired
+        return true
+    }
+
+    private func applyScanningState() {
+        if preferences.scanningEnabled {
+            scanController.interval = preferences.scanInterval
+            scanController.attach(to: keyboardView)
+            scanController.start(switchKey: preferences.scanSwitchKey)
+        } else {
+            scanController.stop()
+        }
     }
 
     // MARK: - Panel
@@ -109,6 +149,7 @@ final class KeyboardController: NSObject {
 
     func clearLearnedWords() {
         learnedStore.clear()
+        bigrams.clear()
     }
 
     private func positionAtBottomCenter() {
@@ -151,6 +192,7 @@ final class KeyboardController: NSObject {
         refreshKeyCaps()
         updateSuggestions()
         noteActivity()
+        scanController.attach(to: view)
     }
 
     // MARK: - Inactivity fade
@@ -206,23 +248,30 @@ final class KeyboardController: NSObject {
     }
 
     @objc private func frontmostAppChanged(_ notification: Notification) {
+        let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey]
+            as? NSRunningApplication
+        let isSelf = app?.processIdentifier == ProcessInfo.processInfo.processIdentifier
+
+        if !isSelf {
+            activeProfile = profileStore.profile(for: app?.bundleIdentifier)
+            if applyEffectiveLayout() {
+                rebuildKeyboardView()
+            }
+        }
         refreshTerminalMode()
         tracker.reset()
         updateSuggestions()
 
-        let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey]
-            as? NSRunningApplication
-        if app?.processIdentifier != ProcessInfo.processInfo.processIdentifier {
+        if !isSelf {
             focusWatcher.attach(to: app)
         }
     }
 
     @objc private func preferencesChanged(_ notification: Notification) {
-        let newLayout = LayoutStore.layout(id: preferences.layoutID)
-        if let newLayout, newLayout.id != layout.id {
-            layout = newLayout
-        }
+        applyEffectiveLayout()
         rebuildKeyboardView()
+        applyScanningState()
+        panels.rebuildOpenPanels()
     }
 
     @objc private func inputSourceChanged(_ notification: Notification) {
@@ -233,7 +282,11 @@ final class KeyboardController: NSObject {
 
     private func refreshTerminalMode() {
         let bundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
-        terminalMode = bundleID.map { Self.terminalBundleIDs.contains($0) } ?? false
+        if let forced = activeProfile?.terminalMode {
+            terminalMode = forced
+        } else {
+            terminalMode = bundleID.map { Self.terminalBundleIDs.contains($0) } ?? false
+        }
     }
 
     private func handleTextFocusChange(_ hasTextFocus: Bool) {
@@ -390,6 +443,10 @@ final class KeyboardController: NSObject {
         guard word.count >= 3 else { return }
         predictor.learn(word)
         learnedStore.record(word)
+        let previous = tracker.previousWord
+        if !previous.isEmpty {
+            bigrams.learn(previous: previous, next: word)
+        }
     }
 
     // MARK: - Macros
@@ -454,12 +511,18 @@ final class KeyboardController: NSObject {
             return shellCompleter.suggestions(forLine: tracker.line)
         }
         let word = tracker.currentWord
-        guard !word.isEmpty else { return [] }
+        if word.isEmpty {
+            // Next-word prediction from learned bigrams after a completed word.
+            let last = tracker.lastCompletedWord
+            guard !last.isEmpty, tracker.line.hasSuffix(" ") else { return [] }
+            return bigrams.suggestions(after: last)
+        }
         return predictor.suggestions(forPrefix: word)
     }
 
     private func acceptSuggestion(_ suggestion: String) {
         noteActivity()
+        let bigramContext = terminalMode ? "" : tracker.previousWord
         let prefix = terminalMode ? tracker.currentToken : tracker.currentWord
         let completion: String
         if suggestion.lowercased().hasPrefix(prefix.lowercased()) {
@@ -473,6 +536,9 @@ final class KeyboardController: NSObject {
         if !terminalMode, preferences.learningEnabled, suggestion.count >= 3 {
             predictor.learn(suggestion)
             learnedStore.record(suggestion)
+            if !bigramContext.isEmpty {
+                bigrams.learn(previous: bigramContext, next: suggestion)
+            }
         }
         updateSuggestions()
     }

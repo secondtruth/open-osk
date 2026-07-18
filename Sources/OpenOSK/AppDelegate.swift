@@ -21,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusBarController = StatusBarController(appDelegate: self)
 
         keyboardController.showPanel()
+        keyboardController.panels.restoreOpenPanels()
 
         if isSmokeTest {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {

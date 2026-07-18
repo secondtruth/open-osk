@@ -51,6 +51,18 @@ final class SettingsController: NSObject {
             target: self, action: #selector(dwellTimeChanged)
         )
 
+        let scanIntervalSlider = NSSlider(
+            value: preferences.scanInterval, minValue: 0.5, maxValue: 3.0,
+            target: self, action: #selector(scanIntervalChanged)
+        )
+        let switchKeyPopup = NSPopUpButton()
+        switchKeyPopup.addItems(withTitles: Self.switchKeys.map { $0.title })
+        if let index = Self.switchKeys.firstIndex(where: { $0.id == preferences.scanSwitchKey }) {
+            switchKeyPopup.selectItem(at: index)
+        }
+        switchKeyPopup.target = self
+        switchKeyPopup.action = #selector(switchKeySelected)
+
         let clearButton = NSButton(
             title: L("Clear Learned Words"),
             target: self,
@@ -98,6 +110,12 @@ final class SettingsController: NSObject {
                 selector: #selector(dwellToggled),
                 state: preferences.dwellEnabled)],
             [label(L("Dwell time:")), dwellTimeSlider],
+            [NSGridCell.emptyContentView, checkbox(
+                L("Scanning (switch access)"),
+                selector: #selector(scanningToggled),
+                state: preferences.scanningEnabled)],
+            [label(L("Scan interval:")), scanIntervalSlider],
+            [label(L("Switch key:")), switchKeyPopup],
             [NSGridCell.emptyContentView, clearButton],
         ])
         grid.translatesAutoresizingMaskIntoConstraints = false
@@ -196,5 +214,27 @@ final class SettingsController: NSObject {
 
     @objc private func clearLearned() {
         keyboardController.clearLearnedWords()
+    }
+
+    private static let switchKeys: [(id: String, title: String)] = [
+        ("space", L("Space")),
+        ("return", L("Return")),
+        ("f13", "F13"),
+        ("f14", "F14"),
+        ("f15", "F15"),
+    ]
+
+    @objc private func scanningToggled(_ sender: NSButton) {
+        preferences.scanningEnabled = sender.state == .on
+    }
+
+    @objc private func scanIntervalChanged(_ sender: NSSlider) {
+        preferences.scanInterval = sender.doubleValue
+    }
+
+    @objc private func switchKeySelected(_ sender: NSPopUpButton) {
+        let index = sender.indexOfSelectedItem
+        guard Self.switchKeys.indices.contains(index) else { return }
+        preferences.scanSwitchKey = Self.switchKeys[index].id
     }
 }

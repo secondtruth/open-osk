@@ -31,3 +31,11 @@
 "Fade keyboard when inactive" = "Fade keyboard when inactive";
 "Show keyboard when editing text" = "Show keyboard when editing text";
 "Clear Learned Words" = "Clear Learned Words";
+
+/* Panels & scanning */
+"Panels" = "Panels";
+"Scanning (switch access)" = "Scanning (switch access)";
+"Scan interval:" = "Scan interval:";
+"Switch key:" = "Switch key:";
+"Space" = "Space";
+"Return" = "Return";

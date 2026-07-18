@@ -5,13 +5,14 @@ import OpenOSKCore
 struct KeyboardMetrics {
     let scale: CGFloat
     var showsCurrentText = true
+    var showsSuggestionBar = true
 
     var unit: CGFloat { 46 * scale }
     var keyHeight: CGFloat { 46 * scale }
     var gap: CGFloat { 5 * scale }
     var padding: CGFloat { 8 * scale }
     var currentTextHeight: CGFloat { showsCurrentText ? 24 * scale : 0 }
-    var suggestionHeight: CGFloat { 34 * scale }
+    var suggestionHeight: CGFloat { showsSuggestionBar ? 34 * scale : 0 }
     var keyFontSize: CGFloat { 16 * scale }
     var secondaryFontSize: CGFloat { 9 * scale }
     var suggestionFontSize: CGFloat { 13 * scale }
@@ -57,6 +58,19 @@ final class KeyView: NSView {
     /// Long-press hook for character keys; returns true if it was handled
     /// (e.g. a variant popup was shown), which suppresses the normal press.
     var onLongPress: ((Key, KeyView) -> Bool)?
+    /// Highlight driven by scanning (switch access) mode.
+    var isScanHighlighted = false {
+        didSet { needsDisplay = true }
+    }
+
+    /// Programmatic activation, used by scanning mode.
+    func triggerPress() {
+        isPressedVisual = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { [weak self] in
+            self?.isPressedVisual = false
+        }
+        onPress?(key)
+    }
 
     private var isPressedVisual = false {
         didSet { needsDisplay = true }
@@ -265,6 +279,14 @@ final class KeyView: NSView {
             border.stroke()
         }
 
+        if isScanHighlighted {
+            let border = NSBezierPath(
+                roundedRect: rect.insetBy(dx: 1.5, dy: 1.5), xRadius: 6, yRadius: 6)
+            NSColor.systemOrange.setStroke()
+            border.lineWidth = 3
+            border.stroke()
+        }
+
         let textColor: NSColor = isPressedVisual ? .white : .labelColor
 
         if !displayText.isEmpty {
@@ -326,6 +348,15 @@ final class SuggestionButton: NSButton {
     var dwell = DwellConfiguration()
     private var dwellTimer: Timer?
 
+    var isScanHighlighted = false {
+        didSet {
+            wantsLayer = true
+            layer?.borderWidth = isScanHighlighted ? 3 : 0
+            layer?.borderColor = NSColor.systemOrange.cgColor
+            layer?.cornerRadius = 6
+        }
+    }
+
     override var mouseDownCanMoveWindow: Bool { false }
 
     override func updateTrackingAreas() {
@@ -359,6 +390,8 @@ final class SuggestionBarView: NSView {
     var dwell = DwellConfiguration()
 
     private var buttons: [SuggestionButton] = []
+
+    var scanItems: [SuggestionButton] { buttons }
 
     override var mouseDownCanMoveWindow: Bool { true }
 
@@ -409,7 +442,19 @@ final class KeyboardView: NSView {
     var onHoverChange: ((Bool) -> Void)?
 
     private var keyViews: [KeyView] = []
+    private(set) var keyRows: [[KeyView]] = []
     private let currentTextLabel = NSTextField(labelWithString: "")
+
+    /// Groups for scanning mode: the suggestion bar (if populated) followed by
+    /// each key row.
+    var scanGroups: [[NSView]] {
+        var groups: [[NSView]] = []
+        if metrics.showsSuggestionBar, !suggestionBar.scanItems.isEmpty {
+            groups.append(suggestionBar.scanItems)
+        }
+        groups.append(contentsOf: keyRows.map { $0 })
+        return groups
+    }
 
     init(layout: KeyboardLayout, metrics: KeyboardMetrics, dwell: DwellConfiguration) {
         self.layout = layout
@@ -426,11 +471,14 @@ final class KeyboardView: NSView {
             addSubview(currentTextLabel)
         }
 
-        suggestionBar.fontSize = metrics.suggestionFontSize
-        suggestionBar.dwell = dwell
-        addSubview(suggestionBar)
+        if metrics.showsSuggestionBar {
+            suggestionBar.fontSize = metrics.suggestionFontSize
+            suggestionBar.dwell = dwell
+            addSubview(suggestionBar)
+        }
 
         for row in layout.rows {
+            var rowViews: [KeyView] = []
             for key in row {
                 let view = KeyView(key: key)
                 view.fontSize = metrics.keyFontSize
@@ -442,7 +490,9 @@ final class KeyboardView: NSView {
                 }
                 addSubview(view)
                 keyViews.append(view)
+                rowViews.append(view)
             }
+            keyRows.append(rowViews)
         }
         updateKeyCaps(shifted: false, alted: false, modifierStates: [:])
         layoutKeys()
@@ -533,13 +583,15 @@ final class KeyboardView: NSView {
             y += m.currentTextHeight
         }
 
-        suggestionBar.frame = NSRect(
-            x: m.padding,
-            y: y,
-            width: bounds.width - m.padding * 2,
-            height: m.suggestionHeight
-        )
-        y += m.suggestionHeight + m.gap
+        if m.showsSuggestionBar {
+            suggestionBar.frame = NSRect(
+                x: m.padding,
+                y: y,
+                width: bounds.width - m.padding * 2,
+                height: m.suggestionHeight
+            )
+            y += m.suggestionHeight + m.gap
+        }
 
         var index = 0
         for row in layout.rows {
