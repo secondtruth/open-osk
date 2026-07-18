@@ -16,25 +16,56 @@
 - [x] Menu bar app, settings window (layout, key size, opacity, toggles)
 - [x] Unit tests (Swift Testing), Makefile, app bundle script, docs
 
-## Next up
+## v0.2 — typing comfort (derived from the role models)
 
-- [ ] App icon; German localization of UI strings
-- [ ] Auto-show/hide keyboard when a text field gains focus (AX observers)
-- [ ] Dwell input: hover-to-press for users who cannot click
-- [ ] Scanning input (switch access) as an alternative input mode
-- [ ] Text macros / snippets (Hot Virtual Keyboard feature parity)
-- [ ] Per-app profiles (layout + mode per application)
-- [ ] Better prediction: bigram/next-word prediction, larger word lists,
+From the macOS Accessibility Keyboard:
+
+- [ ] **Current-text toolbar**: show the word/line being typed directly on the
+      keyboard, so the user doesn't have to watch a distant text field
+- [ ] **Auto-capitalization** (sentence starts) and **auto-spacing** (smart space
+      after punctuation, double-space → period)
+- [ ] **Fade/hide after inactivity** (configurable), restore on hover
+- [ ] **Dwell input**: hovering a key for a configurable time presses it, with a
+      visual progress indicator on the key — for pointer-only users (head/eye
+      tracker, joystick); complements the system-wide dwell in macOS
+- [ ] **Long-press accent popup**: hold a/e/u… to pick à á â ä … (also gives
+      access to rare symbols without an extra layer)
+
+From Hot Virtual Keyboard:
+
+- [ ] **Programmable keys / macros**: keys that insert text snippets, launch
+      apps/URLs, or replay keystroke sequences (JSON-defined like layouts)
+- [ ] **Auto-show/hide when a text field gains/loses focus** (AX observers)
+- [ ] Housekeeping: app icon, German localization of UI strings
+
+## v0.3 — accessibility depth & developer features
+
+- [ ] **Scanning input (switch access)**: sequentially highlight key groups →
+      rows → keys; one or two external switches (or any key/click) select.
+      For users who cannot use a pointer at all.
+- [ ] **Custom panels** (Panel Editor concept): user-defined button collections
+      per task/app — e.g. a git panel, a VS Code panel; buttons carry actions
+      (text, shortcut, macro, panel switch), optional image, spoken phrase
+- [ ] **Per-app profiles**: layout + panel + mode switching per frontmost app
+- [ ] **Themes/skins** beyond scale+opacity (key shape, colors, fonts)
+- [ ] Better prediction: bigram/next-word prediction, larger frequency lists,
       optional `/usr/share/dict/words` merge
-- [ ] Shell completion: read $PATH for command discovery, file path completion,
-      completion history from the Texter
-- [ ] VS Code handling: detect integrated terminal focus (AX API) to enable
+- [ ] Shell completion: discover commands from `$PATH`, file path completion,
+      remember frequently used commands
+- [ ] VS Code handling: detect integrated-terminal focus via AX API to enable
       terminal mode inside editors
-- [ ] Layout editor UI (drag & drop keys) instead of hand-written JSON
+- [ ] Word-by-word deletion key (⌥⌫); system control keys (volume, brightness,
+      media) as optional layout row
+
+## Later
+
+- [ ] Layout editor UI (drag & drop) instead of hand-written JSON
 - [ ] Multi-display awareness; remember panel position per display
-- [ ] Optional key click sound / haptic-style visual feedback
-- [ ] Code signing & notarization for distribution; Homebrew cask
-- [ ] Word-by-word deletion key (⌥⌫), Fn/media row layout variant
+- [ ] Optional key click sound feedback
+- [ ] Code signing & notarization; Homebrew cask
+- [ ] Cross-platform strategy: keep data formats (layouts, wordlists,
+      completions) portable; extract core logic into a portable library with
+      native shells per OS (see discussion in project notes)
 
 ## Ideas (from the original concept note)
 
