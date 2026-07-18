@@ -1,0 +1,33 @@
+/* Menu bar */
+"Show Keyboard" = "Tastatur anzeigen";
+"Hide Keyboard" = "Tastatur ausblenden";
+"Open Texter" = "Texter öffnen";
+"Layout" = "Layout";
+"Settings…" = "Einstellungen …";
+"Grant Accessibility Access…" = "Bedienungshilfen-Zugriff erlauben …";
+"About OpenOSK" = "Über OpenOSK";
+"Quit OpenOSK" = "OpenOSK beenden";
+
+/* Texter */
+"Texter → %@" = "Texter → %@";
+"Insert via clipboard (⌘V)" = "Über Zwischenablage einfügen (⌘V)";
+"Press Return after" = "Danach Return drücken";
+"Clear" = "Leeren";
+"Insert" = "Einfügen";
+
+/* Settings */
+"OpenOSK Settings" = "OpenOSK-Einstellungen";
+"Layout:" = "Layout:";
+"Key size:" = "Tastengröße:";
+"Opacity:" = "Deckkraft:";
+"Dwell time:" = "Verweildauer:";
+"Show word predictions" = "Wortvorschläge anzeigen";
+"Learn words from my typing" = "Wörter aus meiner Eingabe lernen";
+"Complete shell commands in terminals" = "Shell-Befehle im Terminal vervollständigen";
+"Auto-capitalize after sentence end" = "Nach Satzende automatisch großschreiben";
+"Double-space inserts a period" = "Doppel-Leerzeichen fügt Punkt ein";
+"Show current text on the keyboard" = "Aktuellen Text auf der Tastatur anzeigen";
+"Dwell input (hover to press)" = "Verweil-Eingabe (Zeigen drückt Taste)";
+"Fade keyboard when inactive" = "Tastatur bei Inaktivität ausblenden";
+"Show keyboard when editing text" = "Tastatur bei Texteingabe automatisch anzeigen";
+"Clear Learned Words" = "Gelernte Wörter löschen";

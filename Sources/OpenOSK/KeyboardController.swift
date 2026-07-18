@@ -2,7 +2,7 @@ import AppKit
 import OpenOSKCore
 
 /// Coordinates the keyboard panel: key handling, modifier latching,
-/// predictions and terminal mode.
+/// predictions, typing aids, dwell, macros and terminal mode.
 final class KeyboardController: NSObject {
     enum ModifierState {
         case off
@@ -47,6 +47,8 @@ final class KeyboardController: NSObject {
     private let tracker = CompositionTracker()
     private let learnedStore = LearnedWordsStore()
     private let preferences = Preferences.shared
+    private let variantPopup = VariantPopup()
+    private let focusWatcher = FocusWatcher()
 
     private let panel: KeyboardPanel
     private var keyboardView: KeyboardView!
@@ -54,6 +56,8 @@ final class KeyboardController: NSObject {
     private var modifierStates: [Modifier: ModifierState] = [:]
     private var terminalMode = false
     private var didPositionPanel = false
+    private var panelWasAutoShown = false
+    private var inactivityTimer: Timer?
 
     init(injector: KeyInjector, resolver: KeycodeResolver) {
         self.injector = injector
@@ -72,21 +76,30 @@ final class KeyboardController: NSObject {
         rebuildKeyboardView()
         observeEnvironment()
         refreshTerminalMode()
+
+        focusWatcher.onTextFocusChange = { [weak self] hasTextFocus in
+            self?.handleTextFocusChange(hasTextFocus)
+        }
+        focusWatcher.attach(to: NSWorkspace.shared.frontmostApplication)
     }
 
     // MARK: - Panel
 
     var isPanelVisible: Bool { panel.isVisible }
 
-    func showPanel() {
+    func showPanel(automatically: Bool = false) {
         if !didPositionPanel {
             positionAtBottomCenter()
             didPositionPanel = true
         }
+        panelWasAutoShown = automatically
         panel.orderFrontRegardless()
+        noteActivity()
     }
 
     func hidePanel() {
+        variantPopup.dismiss()
+        panelWasAutoShown = false
         panel.orderOut(nil)
     }
 
@@ -109,9 +122,21 @@ final class KeyboardController: NSObject {
     }
 
     private func rebuildKeyboardView() {
-        let metrics = KeyboardMetrics(scale: CGFloat(preferences.scale))
-        let view = KeyboardView(layout: layout, metrics: metrics)
+        var metrics = KeyboardMetrics(scale: CGFloat(preferences.scale))
+        metrics.showsCurrentText = preferences.showCurrentText
+        let dwell = DwellConfiguration(
+            enabled: preferences.dwellEnabled,
+            time: preferences.dwellTime
+        )
+
+        let view = KeyboardView(layout: layout, metrics: metrics, dwell: dwell)
         view.onKeyPress = { [weak self] key in self?.handleKey(key) }
+        view.onKeyLongPress = { [weak self] key, keyView in
+            self?.handleLongPress(key, keyView: keyView) ?? false
+        }
+        view.onHoverChange = { [weak self] hovering in
+            if hovering { self?.noteActivity() }
+        }
         view.suggestionBar.onSelect = { [weak self] suggestion in
             self?.acceptSuggestion(suggestion)
         }
@@ -125,6 +150,36 @@ final class KeyboardController: NSObject {
         panel.alphaValue = CGFloat(preferences.opacity)
         refreshKeyCaps()
         updateSuggestions()
+        noteActivity()
+    }
+
+    // MARK: - Inactivity fade
+
+    /// Restores full opacity and restarts the inactivity countdown.
+    private func noteActivity() {
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.15
+            panel.animator().alphaValue = CGFloat(preferences.opacity)
+        }
+        inactivityTimer?.invalidate()
+        guard preferences.inactivityFadeEnabled, preferences.inactivityFadeDelay > 0 else {
+            return
+        }
+        let timer = Timer(
+            timeInterval: preferences.inactivityFadeDelay, repeats: false
+        ) { [weak self] _ in
+            self?.fadeOut()
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        inactivityTimer = timer
+    }
+
+    private func fadeOut() {
+        guard panel.isVisible else { return }
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.6
+            panel.animator().alphaValue = max(0.12, CGFloat(preferences.opacity) * 0.2)
+        }
     }
 
     // MARK: - Environment observation
@@ -154,12 +209,17 @@ final class KeyboardController: NSObject {
         refreshTerminalMode()
         tracker.reset()
         updateSuggestions()
+
+        let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey]
+            as? NSRunningApplication
+        if app?.processIdentifier != ProcessInfo.processInfo.processIdentifier {
+            focusWatcher.attach(to: app)
+        }
     }
 
     @objc private func preferencesChanged(_ notification: Notification) {
         let newLayout = LayoutStore.layout(id: preferences.layoutID)
-        let layoutChanged = newLayout != nil && newLayout!.id != layout.id
-        if let newLayout, layoutChanged {
+        if let newLayout, newLayout.id != layout.id {
             layout = newLayout
         }
         rebuildKeyboardView()
@@ -174,6 +234,17 @@ final class KeyboardController: NSObject {
     private func refreshTerminalMode() {
         let bundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
         terminalMode = bundleID.map { Self.terminalBundleIDs.contains($0) } ?? false
+    }
+
+    private func handleTextFocusChange(_ hasTextFocus: Bool) {
+        guard preferences.autoShowOnTextFocus else { return }
+        if hasTextFocus {
+            if !isPanelVisible {
+                showPanel(automatically: true)
+            }
+        } else if panelWasAutoShown {
+            hidePanel()
+        }
     }
 
     // MARK: - Modifier handling
@@ -208,6 +279,9 @@ final class KeyboardController: NSObject {
 
     func handleKey(_ key: Key) {
         guard let kind = key.kind else { return }
+        variantPopup.dismiss()
+        noteActivity()
+
         switch kind {
         case .modifier(let modifier):
             modifierStates[modifier] = (modifierStates[modifier] ?? .off).next
@@ -219,10 +293,35 @@ final class KeyboardController: NSObject {
 
         case .special(let special):
             handleSpecialKey(special)
+
+        case .macro(let macro):
+            runMacro(macro)
         }
         releaseLatchedModifiers()
         refreshKeyCaps()
         updateSuggestions()
+    }
+
+    /// Long-press on a character key: show the variant popup. Returns whether
+    /// the popup was shown (which suppresses the normal key press).
+    private func handleLongPress(_ key: Key, keyView: KeyView) -> Bool {
+        guard let base = key.base else { return false }
+        let variants = CharacterVariants.variants(for: base, shifted: isActive(.shift))
+        guard !variants.isEmpty else { return false }
+
+        variantPopup.show(
+            variants: variants,
+            relativeTo: keyView,
+            metrics: keyboardView.metrics
+        ) { [weak self] variant in
+            guard let self else { return }
+            self.injector.typeText(variant)
+            self.tracker.typed(variant)
+            self.releaseLatchedModifiers()
+            self.refreshKeyCaps()
+            self.updateSuggestions()
+        }
+        return true
     }
 
     private func handleCharacterKey(_ key: Key) {
@@ -241,7 +340,14 @@ final class KeyboardController: NSObject {
             return
         }
 
-        guard let output = key.output(shifted: shifted, alted: alted) else { return }
+        guard var output = key.output(shifted: shifted, alted: alted) else { return }
+
+        if preferences.autoCapitalization, !terminalMode, !shifted, !alted,
+           output.count == 1, output.first!.isLowercase,
+           TypingAids.shouldAutoCapitalize(afterLine: tracker.line) {
+            output = output.uppercased()
+        }
+
         injector.typeText(output)
         tracker.typed(output)
     }
@@ -250,6 +356,15 @@ final class KeyboardController: NSObject {
         let flags = currentFlags()
         switch special {
         case .space:
+            if preferences.autoSpacing, !terminalMode, flags.isEmpty,
+               TypingAids.shouldInsertPeriodOnDoubleSpace(line: tracker.line) {
+                // Second space of a double-space becomes ". ".
+                injector.pressKey(SpecialKey.delete.keyCode)
+                injector.typeText(". ")
+                tracker.backspaced()
+                tracker.typed(". ")
+                return
+            }
             commitCurrentWord()
             injector.pressKey(special.keyCode, flags: flags)
             tracker.typed(" ")
@@ -277,10 +392,59 @@ final class KeyboardController: NSObject {
         learnedStore.record(word)
     }
 
-    // MARK: - Suggestions
+    // MARK: - Macros
+
+    private func runMacro(_ macro: Macro) {
+        if macro.isPlainText {
+            for step in macro.steps {
+                if let text = step.text { tracker.typed(text) }
+            }
+        } else {
+            tracker.reset()
+        }
+
+        let injector = self.injector
+        let resolver = self.resolver
+        DispatchQueue.global(qos: .userInitiated).async {
+            for step in macro.steps {
+                if let delay = step.delayMs, delay > 0 {
+                    usleep(useconds_t(delay) * 1000)
+                }
+                if let text = step.text {
+                    injector.typeText(text)
+                }
+                if let shortcut = step.shortcut,
+                   let parsed = ShortcutParser.parse(shortcut) {
+                    if let special = parsed.special {
+                        injector.pressKey(special.keyCode, flags: parsed.flags)
+                    } else if let character = parsed.character,
+                              let resolution = resolver.resolve(character) {
+                        var flags = parsed.flags
+                        if resolution.needsShift { flags.insert(.maskShift) }
+                        injector.pressKey(resolution.keyCode, flags: flags)
+                    }
+                }
+                if let target = step.open {
+                    DispatchQueue.main.async { Self.open(target) }
+                }
+            }
+        }
+    }
+
+    private static func open(_ target: String) {
+        if target.hasPrefix("/") || target.hasPrefix("~") {
+            let path = (target as NSString).expandingTildeInPath
+            NSWorkspace.shared.open(URL(fileURLWithPath: path))
+        } else if let url = URL(string: target), url.scheme != nil {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    // MARK: - Suggestions & current text
 
     private func updateSuggestions() {
         keyboardView.suggestionBar.setSuggestions(computeSuggestions())
+        keyboardView.setCurrentText(tracker.line)
     }
 
     private func computeSuggestions() -> [String] {
@@ -295,6 +459,7 @@ final class KeyboardController: NSObject {
     }
 
     private func acceptSuggestion(_ suggestion: String) {
+        noteActivity()
         let prefix = terminalMode ? tracker.currentToken : tracker.currentWord
         let completion: String
         if suggestion.lowercased().hasPrefix(prefix.lowercased()) {

@@ -3,6 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "OpenOSK",
+    defaultLocalization: "en",
     platforms: [
         .macOS(.v13)
     ],
@@ -19,7 +20,10 @@ let package = Package(
         ),
         .executableTarget(
             name: "OpenOSK",
-            dependencies: ["OpenOSKCore"]
+            dependencies: ["OpenOSKCore"],
+            resources: [
+                .process("Resources")
+            ]
         ),
         .testTarget(
             name: "OpenOSKCoreTests",

@@ -26,10 +26,10 @@ final class StatusBarController: NSObject, NSMenuDelegate {
 
         let keyboardVisible = appDelegate.keyboardController.isPanelVisible
         menu.addItem(makeItem(
-            title: keyboardVisible ? "Hide Keyboard" : "Show Keyboard",
+            title: keyboardVisible ? L("Hide Keyboard") : L("Show Keyboard"),
             action: #selector(toggleKeyboard)
         ))
-        menu.addItem(makeItem(title: "Open Texter", action: #selector(openTexter)))
+        menu.addItem(makeItem(title: L("Open Texter"), action: #selector(openTexter)))
 
         let layoutMenu = NSMenu()
         let currentLayoutID = Preferences.shared.layoutID
@@ -44,23 +44,23 @@ final class StatusBarController: NSObject, NSMenuDelegate {
             item.state = layout.id == currentLayoutID ? .on : .off
             layoutMenu.addItem(item)
         }
-        let layoutItem = NSMenuItem(title: "Layout", action: nil, keyEquivalent: "")
+        let layoutItem = NSMenuItem(title: L("Layout"), action: nil, keyEquivalent: "")
         layoutItem.submenu = layoutMenu
         menu.addItem(layoutItem)
 
-        menu.addItem(makeItem(title: "Settings…", action: #selector(openSettings)))
+        menu.addItem(makeItem(title: L("Settings…"), action: #selector(openSettings)))
         menu.addItem(.separator())
 
         if !KeyInjector.isTrusted() {
             menu.addItem(makeItem(
-                title: "⚠️ Grant Accessibility Access…",
+                title: "⚠️ " + L("Grant Accessibility Access…"),
                 action: #selector(openAccessibilitySettings)
             ))
             menu.addItem(.separator())
         }
 
-        menu.addItem(makeItem(title: "About OpenOSK", action: #selector(showAbout)))
-        menu.addItem(makeItem(title: "Quit OpenOSK", action: #selector(quit)))
+        menu.addItem(makeItem(title: L("About OpenOSK"), action: #selector(showAbout)))
+        menu.addItem(makeItem(title: L("Quit OpenOSK"), action: #selector(quit)))
     }
 
     private func makeItem(title: String, action: Selector) -> NSMenuItem {

@@ -1,0 +1,33 @@
+/* Menu bar */
+"Show Keyboard" = "Show Keyboard";
+"Hide Keyboard" = "Hide Keyboard";
+"Open Texter" = "Open Texter";
+"Layout" = "Layout";
+"Settings…" = "Settings…";
+"Grant Accessibility Access…" = "Grant Accessibility Access…";
+"About OpenOSK" = "About OpenOSK";
+"Quit OpenOSK" = "Quit OpenOSK";
+
+/* Texter */
+"Texter → %@" = "Texter → %@";
+"Insert via clipboard (⌘V)" = "Insert via clipboard (⌘V)";
+"Press Return after" = "Press Return after";
+"Clear" = "Clear";
+"Insert" = "Insert";
+
+/* Settings */
+"OpenOSK Settings" = "OpenOSK Settings";
+"Layout:" = "Layout:";
+"Key size:" = "Key size:";
+"Opacity:" = "Opacity:";
+"Dwell time:" = "Dwell time:";
+"Show word predictions" = "Show word predictions";
+"Learn words from my typing" = "Learn words from my typing";
+"Complete shell commands in terminals" = "Complete shell commands in terminals";
+"Auto-capitalize after sentence end" = "Auto-capitalize after sentence end";
+"Double-space inserts a period" = "Double-space inserts a period";
+"Show current text on the keyboard" = "Show current text on the keyboard";
+"Dwell input (hover to press)" = "Dwell input (hover to press)";
+"Fade keyboard when inactive" = "Fade keyboard when inactive";
+"Show keyboard when editing text" = "Show keyboard when editing text";
+"Clear Learned Words" = "Clear Learned Words";

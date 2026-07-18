@@ -43,7 +43,7 @@ final class TexterController: NSObject, NSWindowDelegate {
 
     private func updateTitle() {
         let name = targetApp?.localizedName ?? "?"
-        window?.title = "Texter → \(name)"
+        window?.title = String(format: L("Texter → %@"), name)
     }
 
     // MARK: - Window construction
@@ -79,18 +79,18 @@ final class TexterController: NSObject, NSWindowDelegate {
         self.textView = textView
 
         pasteCheckbox = NSButton(
-            checkboxWithTitle: "Insert via clipboard (⌘V)",
+            checkboxWithTitle: L("Insert via clipboard (⌘V)"),
             target: self,
             action: #selector(pasteModeToggled)
         )
         returnCheckbox = NSButton(
-            checkboxWithTitle: "Press Return after",
+            checkboxWithTitle: L("Press Return after"),
             target: nil,
             action: nil
         )
 
-        let clearButton = NSButton(title: "Clear", target: self, action: #selector(clearText))
-        let insertButton = NSButton(title: "Insert", target: self, action: #selector(insertText))
+        let clearButton = NSButton(title: L("Clear"), target: self, action: #selector(clearText))
+        let insertButton = NSButton(title: L("Insert"), target: self, action: #selector(insertText))
         insertButton.keyEquivalent = "\r"
         insertButton.keyEquivalentModifierMask = [.command]
         insertButton.bezelStyle = .rounded
