@@ -26,6 +26,10 @@ public final class Preferences {
             Keys.inactivityFadeEnabled: true,
             Keys.inactivityFadeDelay: 10.0,
             Keys.autoShowOnTextFocus: false,
+            Keys.scanningEnabled: false,
+            Keys.scanInterval: 1.2,
+            Keys.scanSwitchKey: "space",
+            Keys.openPanelIDs: [String](),
         ])
     }
 
@@ -46,6 +50,10 @@ public final class Preferences {
         static let inactivityFadeEnabled = "inactivityFadeEnabled"
         static let inactivityFadeDelay = "inactivityFadeDelay"
         static let autoShowOnTextFocus = "autoShowOnTextFocus"
+        static let scanningEnabled = "scanningEnabled"
+        static let scanInterval = "scanInterval"
+        static let scanSwitchKey = "scanSwitchKey"
+        static let openPanelIDs = "openPanelIDs"
     }
 
     public var layoutID: String {
@@ -136,6 +144,30 @@ public final class Preferences {
     public var autoShowOnTextFocus: Bool {
         get { defaults.bool(forKey: Keys.autoShowOnTextFocus) }
         set { set(newValue, forKey: Keys.autoShowOnTextFocus) }
+    }
+
+    /// Scanning (switch access) input mode.
+    public var scanningEnabled: Bool {
+        get { defaults.bool(forKey: Keys.scanningEnabled) }
+        set { set(newValue, forKey: Keys.scanningEnabled) }
+    }
+
+    /// Seconds between scan highlight steps.
+    public var scanInterval: Double {
+        get { defaults.double(forKey: Keys.scanInterval) }
+        set { set(newValue, forKey: Keys.scanInterval) }
+    }
+
+    /// Hardware key acting as the scan switch: "space", "return", "f13"–"f15".
+    public var scanSwitchKey: String {
+        get { defaults.string(forKey: Keys.scanSwitchKey) ?? "space" }
+        set { set(newValue, forKey: Keys.scanSwitchKey) }
+    }
+
+    /// Custom panels that are currently open (restored on launch).
+    public var openPanelIDs: [String] {
+        get { defaults.stringArray(forKey: Keys.openPanelIDs) ?? [] }
+        set { set(newValue, forKey: Keys.openPanelIDs) }
     }
 
     private func set(_ value: Any, forKey key: String) {

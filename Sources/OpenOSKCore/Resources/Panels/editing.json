@@ -1,0 +1,20 @@
+{
+  "id": "editing-panel",
+  "name": "Editing",
+  "rows": [
+    [
+      { "label": "Cut", "macro": { "steps": [ { "shortcut": "cmd+x" } ] }, "width": 1.5 },
+      { "label": "Copy", "macro": { "steps": [ { "shortcut": "cmd+c" } ] }, "width": 1.5 },
+      { "label": "Paste", "macro": { "steps": [ { "shortcut": "cmd+v" } ] }, "width": 1.5 },
+      { "label": "Undo", "macro": { "steps": [ { "shortcut": "cmd+z" } ] }, "width": 1.5 },
+      { "label": "Redo", "macro": { "steps": [ { "shortcut": "cmd+shift+z" } ] }, "width": 1.5 }
+    ],
+    [
+      { "label": "Select All", "macro": { "steps": [ { "shortcut": "cmd+a" } ] }, "width": 1.9 },
+      { "label": "Save", "macro": { "steps": [ { "shortcut": "cmd+s" } ] }, "width": 1.4 },
+      { "label": "Find", "macro": { "steps": [ { "shortcut": "cmd+f" } ] }, "width": 1.4 },
+      { "label": "⌫ Word", "macro": { "steps": [ { "shortcut": "alt+backspace" } ] }, "width": 1.4 },
+      { "label": "⌫ Line", "macro": { "steps": [ { "shortcut": "cmd+backspace" } ] }, "width": 1.4 }
+    ]
+  ]
+}

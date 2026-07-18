@@ -1,0 +1,24 @@
+{
+  "id": "git-panel",
+  "name": "Git",
+  "rows": [
+    [
+      { "label": "status", "macro": { "steps": [ { "text": "git status" }, { "shortcut": "return" } ] }, "width": 1.8 },
+      { "label": "diff", "macro": { "steps": [ { "text": "git diff" }, { "shortcut": "return" } ] }, "width": 1.8 },
+      { "label": "log", "macro": { "steps": [ { "text": "git log --oneline -20" }, { "shortcut": "return" } ] }, "width": 1.8 },
+      { "label": "branches", "macro": { "steps": [ { "text": "git branch -a" }, { "shortcut": "return" } ] }, "width": 1.8 }
+    ],
+    [
+      { "label": "add -A", "macro": { "steps": [ { "text": "git add -A" }, { "shortcut": "return" } ] }, "width": 1.8 },
+      { "label": "commit", "macro": { "steps": [ { "text": "git commit -m \"\"" }, { "shortcut": "left" } ] }, "width": 1.8 },
+      { "label": "push", "macro": { "steps": [ { "text": "git push" }, { "shortcut": "return" } ] }, "width": 1.8 },
+      { "label": "pull", "macro": { "steps": [ { "text": "git pull" }, { "shortcut": "return" } ] }, "width": 1.8 }
+    ],
+    [
+      { "label": "stash", "macro": { "steps": [ { "text": "git stash" }, { "shortcut": "return" } ] }, "width": 1.8 },
+      { "label": "stash pop", "macro": { "steps": [ { "text": "git stash pop" }, { "shortcut": "return" } ] }, "width": 1.8 },
+      { "label": "switch -", "macro": { "steps": [ { "text": "git switch -" }, { "shortcut": "return" } ] }, "width": 1.8 },
+      { "label": "restore", "text": "git restore ", "width": 1.8 }
+    ]
+  ]
+}

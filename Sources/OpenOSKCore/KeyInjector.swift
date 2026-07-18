@@ -9,6 +9,10 @@ import Foundation
 /// and special keys are posted as virtual key codes so applications receive
 /// proper key equivalents.
 public final class KeyInjector {
+    /// Marker written into `.eventSourceUserData` of every injected event so
+    /// OpenOSK's own event taps (e.g. the scanning switch) can ignore them.
+    public static let injectionSignature: Int64 = 0x4F534B  // "OSK"
+
     /// Delay between successive events in microseconds. Some applications
     /// drop or reorder events that arrive too fast.
     public var interEventDelay: useconds_t = 2000
@@ -35,6 +39,8 @@ public final class KeyInjector {
             else { continue }
             down.keyboardSetUnicodeString(stringLength: units.count, unicodeString: &units)
             up.keyboardSetUnicodeString(stringLength: units.count, unicodeString: &units)
+            down.setIntegerValueField(.eventSourceUserData, value: Self.injectionSignature)
+            up.setIntegerValueField(.eventSourceUserData, value: Self.injectionSignature)
             down.post(tap: .cghidEventTap)
             up.post(tap: .cghidEventTap)
             usleep(interEventDelay)
@@ -49,6 +55,8 @@ public final class KeyInjector {
         else { return }
         down.flags = flags
         up.flags = flags
+        down.setIntegerValueField(.eventSourceUserData, value: Self.injectionSignature)
+        up.setIntegerValueField(.eventSourceUserData, value: Self.injectionSignature)
         down.post(tap: .cghidEventTap)
         up.post(tap: .cghidEventTap)
         usleep(interEventDelay)

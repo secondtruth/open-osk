@@ -34,6 +34,28 @@ public final class CompositionTracker {
         return word
     }
 
+    /// All complete word tokens in the current line.
+    private var wordTokens: [String] {
+        line.split { character in
+            guard let scalar = character.unicodeScalars.first else { return true }
+            return !Self.wordCharacters.contains(scalar)
+        }.map(String.init)
+    }
+
+    /// The word before the one currently being typed (for bigram learning).
+    public var previousWord: String {
+        guard !currentWord.isEmpty else { return "" }
+        let tokens = wordTokens
+        return tokens.count >= 2 ? tokens[tokens.count - 2] : ""
+    }
+
+    /// The most recently completed word when the line ends in a separator
+    /// (for next-word prediction).
+    public var lastCompletedWord: String {
+        guard currentWord.isEmpty else { return "" }
+        return wordTokens.last ?? ""
+    }
+
     public func typed(_ text: String) {
         for character in text {
             if character == "\n" || character == "\r" {
