@@ -16,6 +16,12 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
 cp .build/release/openosk "$APP/Contents/MacOS/OpenOSK"
 cp -R .build/release/OpenOSK_OpenOSKCore.bundle "$APP/Contents/Resources/"
+if [ -d .build/release/OpenOSK_OpenOSK.bundle ]; then
+	cp -R .build/release/OpenOSK_OpenOSK.bundle "$APP/Contents/Resources/"
+fi
+if [ -f Assets/OpenOSK.icns ]; then
+	cp Assets/OpenOSK.icns "$APP/Contents/Resources/"
+fi
 
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -36,6 +42,15 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 	<string>OpenOSK</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+	<key>CFBundleIconFile</key>
+	<string>OpenOSK</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>de</string>
+	</array>
 	<key>LSMinimumSystemVersion</key>
 	<string>13.0</string>
 	<key>LSUIElement</key>
