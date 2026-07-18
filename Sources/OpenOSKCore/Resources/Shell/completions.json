@@ -1,0 +1,608 @@
+{
+  "commands": [
+    {
+      "name": "git",
+      "flags": ["--version", "--help", "-C", "-c"],
+      "subcommands": [
+        { "name": "status", "flags": ["-s", "--short", "-b", "--branch", "--porcelain"] },
+        { "name": "add", "flags": ["-A", "--all", "-p", "--patch", "-u", "--update", "-i"] },
+        { "name": "commit", "flags": ["-m", "--message", "-a", "--all", "--amend", "--no-verify", "--no-edit", "-S"] },
+        { "name": "push", "flags": ["-u", "--set-upstream", "--force", "--force-with-lease", "--tags", "--dry-run"] },
+        { "name": "pull", "flags": ["--rebase", "--ff-only", "--no-rebase", "--autostash"] },
+        { "name": "fetch", "flags": ["--all", "--prune", "--tags"] },
+        { "name": "clone", "flags": ["--depth", "--branch", "--recursive", "--single-branch"] },
+        { "name": "checkout", "flags": ["-b", "-B", "--track", "--force"] },
+        { "name": "switch", "flags": ["-c", "--create", "--detach"] },
+        { "name": "branch", "flags": ["-a", "--all", "-d", "--delete", "-D", "-m", "--move", "-r", "--list"] },
+        { "name": "merge", "flags": ["--no-ff", "--ff-only", "--squash", "--abort", "--continue"] },
+        { "name": "rebase", "flags": ["-i", "--interactive", "--continue", "--abort", "--onto", "--autosquash"] },
+        { "name": "log", "flags": ["--oneline", "--graph", "--all", "--stat", "-p", "--follow", "-n"] },
+        { "name": "diff", "flags": ["--staged", "--cached", "--stat", "--name-only", "--word-diff"] },
+        { "name": "stash", "flags": ["--include-untracked"], "subcommands": [
+          { "name": "push", "flags": ["-m", "--include-untracked"] },
+          { "name": "pop" },
+          { "name": "apply" },
+          { "name": "list" },
+          { "name": "drop" }
+        ] },
+        { "name": "reset", "flags": ["--hard", "--soft", "--mixed"] },
+        { "name": "restore", "flags": ["--staged", "--source", "--worktree"] },
+        { "name": "revert", "flags": ["--no-edit", "--no-commit", "--continue", "--abort"] },
+        { "name": "remote", "flags": ["-v"], "subcommands": [
+          { "name": "add" },
+          { "name": "remove" },
+          { "name": "set-url" },
+          { "name": "show" }
+        ] },
+        { "name": "tag", "flags": ["-a", "-m", "-d", "--list"] },
+        { "name": "show", "flags": ["--stat", "--name-only"] },
+        { "name": "init", "flags": ["--bare", "--initial-branch"] },
+        { "name": "cherry-pick", "flags": ["--continue", "--abort", "--no-commit"] },
+        { "name": "blame", "flags": ["-L", "-w"] },
+        { "name": "worktree", "subcommands": [
+          { "name": "add" },
+          { "name": "list" },
+          { "name": "remove" },
+          { "name": "prune" }
+        ] },
+        { "name": "submodule", "subcommands": [
+          { "name": "update", "flags": ["--init", "--recursive", "--remote"] },
+          { "name": "add" },
+          { "name": "status" }
+        ] }
+      ]
+    },
+    {
+      "name": "gh",
+      "flags": ["--version", "--help"],
+      "subcommands": [
+        { "name": "pr", "subcommands": [
+          { "name": "create", "flags": ["--title", "--body", "--draft", "--base", "--fill", "--web"] },
+          { "name": "list", "flags": ["--state", "--author", "--label", "--limit"] },
+          { "name": "view", "flags": ["--web", "--comments"] },
+          { "name": "checkout" },
+          { "name": "merge", "flags": ["--merge", "--squash", "--rebase", "--auto", "--delete-branch"] },
+          { "name": "review", "flags": ["--approve", "--comment", "--request-changes", "--body"] }
+        ] },
+        { "name": "issue", "subcommands": [
+          { "name": "create", "flags": ["--title", "--body", "--label", "--assignee", "--web"] },
+          { "name": "list", "flags": ["--state", "--label", "--assignee", "--limit"] },
+          { "name": "view", "flags": ["--web", "--comments"] },
+          { "name": "close" },
+          { "name": "comment", "flags": ["--body"] }
+        ] },
+        { "name": "repo", "subcommands": [
+          { "name": "clone" },
+          { "name": "create", "flags": ["--public", "--private", "--source", "--push"] },
+          { "name": "view", "flags": ["--web"] },
+          { "name": "fork", "flags": ["--clone"] }
+        ] },
+        { "name": "run", "subcommands": [
+          { "name": "list", "flags": ["--limit", "--workflow"] },
+          { "name": "view", "flags": ["--log", "--web"] },
+          { "name": "watch" },
+          { "name": "rerun", "flags": ["--failed"] }
+        ] },
+        { "name": "auth", "subcommands": [
+          { "name": "login", "flags": ["--web", "--with-token", "--hostname"] },
+          { "name": "status" },
+          { "name": "logout" }
+        ] },
+        { "name": "release", "subcommands": [
+          { "name": "create", "flags": ["--title", "--notes", "--draft", "--prerelease"] },
+          { "name": "list" },
+          { "name": "view", "flags": ["--web"] }
+        ] }
+      ]
+    },
+    {
+      "name": "docker",
+      "flags": ["--version", "--help"],
+      "subcommands": [
+        { "name": "ps", "flags": ["-a", "--all", "-q", "--quiet", "--filter", "--format"] },
+        { "name": "run", "flags": ["-d", "--detach", "-it", "--rm", "--name", "-p", "--publish", "-v", "--volume", "-e", "--env", "--network", "--restart"] },
+        { "name": "exec", "flags": ["-it", "-u", "--user", "-w", "--workdir", "-e"] },
+        { "name": "build", "flags": ["-t", "--tag", "-f", "--file", "--no-cache", "--platform", "--build-arg"] },
+        { "name": "images", "flags": ["-a", "-q", "--filter", "--format"] },
+        { "name": "pull", "flags": ["--platform", "--quiet"] },
+        { "name": "push", "flags": ["--quiet"] },
+        { "name": "logs", "flags": ["-f", "--follow", "--tail", "--since", "-t", "--timestamps"] },
+        { "name": "stop", "flags": ["-t", "--time"] },
+        { "name": "start", "flags": ["-a", "-i"] },
+        { "name": "restart", "flags": ["-t"] },
+        { "name": "rm", "flags": ["-f", "--force", "-v", "--volumes"] },
+        { "name": "rmi", "flags": ["-f", "--force"] },
+        { "name": "inspect", "flags": ["--format"] },
+        { "name": "network", "subcommands": [
+          { "name": "ls" },
+          { "name": "create", "flags": ["--driver", "--subnet"] },
+          { "name": "rm" },
+          { "name": "inspect" }
+        ] },
+        { "name": "volume", "subcommands": [
+          { "name": "ls" },
+          { "name": "create" },
+          { "name": "rm" },
+          { "name": "prune", "flags": ["-f", "--force"] },
+          { "name": "inspect" }
+        ] },
+        { "name": "compose", "flags": ["-f", "--file", "-p", "--project-name"], "subcommands": [
+          { "name": "up", "flags": ["-d", "--detach", "--build", "--force-recreate", "--no-deps"] },
+          { "name": "down", "flags": ["-v", "--volumes", "--remove-orphans"] },
+          { "name": "ps", "flags": ["-a", "--all"] },
+          { "name": "logs", "flags": ["-f", "--follow", "--tail"] },
+          { "name": "build", "flags": ["--no-cache", "--pull"] },
+          { "name": "restart" },
+          { "name": "pull" },
+          { "name": "exec", "flags": ["-it", "-u", "-w"] }
+        ] },
+        { "name": "system", "subcommands": [
+          { "name": "prune", "flags": ["-a", "--all", "-f", "--force", "--volumes"] },
+          { "name": "df" },
+          { "name": "info" }
+        ] }
+      ]
+    },
+    {
+      "name": "npm",
+      "flags": ["--version", "--help"],
+      "subcommands": [
+        { "name": "install", "flags": ["-g", "--global", "--save-dev", "-D", "--save-exact", "--legacy-peer-deps"] },
+        { "name": "uninstall", "flags": ["-g", "--save-dev"] },
+        { "name": "run" },
+        { "name": "start" },
+        { "name": "test" },
+        { "name": "init", "flags": ["-y", "--yes"] },
+        { "name": "update", "flags": ["-g"] },
+        { "name": "outdated", "flags": ["-g"] },
+        { "name": "audit", "flags": ["--fix", "--production"] },
+        { "name": "publish", "flags": ["--access", "--tag", "--dry-run"] },
+        { "name": "ci" },
+        { "name": "list", "flags": ["-g", "--depth"] },
+        { "name": "link" }
+      ]
+    },
+    {
+      "name": "pnpm",
+      "flags": ["--version", "--help"],
+      "subcommands": [
+        { "name": "install", "flags": ["--frozen-lockfile", "--prod"] },
+        { "name": "add", "flags": ["-D", "--save-dev", "-g", "--global", "-w", "--workspace-root"] },
+        { "name": "remove", "flags": ["-g"] },
+        { "name": "run" },
+        { "name": "test" },
+        { "name": "build" },
+        { "name": "update", "flags": ["--latest", "-i", "--interactive"] },
+        { "name": "dlx" }
+      ]
+    },
+    {
+      "name": "yarn",
+      "subcommands": [
+        { "name": "install", "flags": ["--frozen-lockfile"] },
+        { "name": "add", "flags": ["-D", "--dev", "-g"] },
+        { "name": "remove" },
+        { "name": "run" },
+        { "name": "build" },
+        { "name": "test" }
+      ]
+    },
+    {
+      "name": "npx",
+      "flags": ["-y", "--yes", "--package"]
+    },
+    {
+      "name": "node",
+      "flags": ["--version", "-e", "--eval", "--watch", "--inspect", "--env-file"]
+    },
+    {
+      "name": "brew",
+      "flags": ["--version", "--help"],
+      "subcommands": [
+        { "name": "install", "flags": ["--cask", "--head", "--force"] },
+        { "name": "uninstall", "flags": ["--cask", "--force", "--zap"] },
+        { "name": "update" },
+        { "name": "upgrade", "flags": ["--cask", "--greedy"] },
+        { "name": "search", "flags": ["--cask"] },
+        { "name": "info", "flags": ["--cask", "--json"] },
+        { "name": "list", "flags": ["--cask", "--versions"] },
+        { "name": "services", "subcommands": [
+          { "name": "start" },
+          { "name": "stop" },
+          { "name": "restart" },
+          { "name": "list" }
+        ] },
+        { "name": "cleanup", "flags": ["--prune", "-n", "--dry-run"] },
+        { "name": "doctor" },
+        { "name": "outdated", "flags": ["--cask"] },
+        { "name": "tap" }
+      ]
+    },
+    {
+      "name": "go",
+      "flags": ["--version"],
+      "subcommands": [
+        { "name": "build", "flags": ["-o", "-v", "-race", "-ldflags", "-tags"] },
+        { "name": "run", "flags": ["-race", "-tags"] },
+        { "name": "test", "flags": ["-v", "-run", "-race", "-cover", "-count", "-bench", "-timeout", "./..."] },
+        { "name": "mod", "subcommands": [
+          { "name": "tidy" },
+          { "name": "init" },
+          { "name": "download" },
+          { "name": "vendor" },
+          { "name": "verify" }
+        ] },
+        { "name": "get", "flags": ["-u", "-t"] },
+        { "name": "install" },
+        { "name": "vet", "flags": ["./..."] },
+        { "name": "fmt", "flags": ["./..."] },
+        { "name": "generate", "flags": ["./..."] },
+        { "name": "version" },
+        { "name": "env", "flags": ["-w"] },
+        { "name": "work", "subcommands": [
+          { "name": "init" },
+          { "name": "use" },
+          { "name": "sync" }
+        ] }
+      ]
+    },
+    {
+      "name": "swift",
+      "flags": ["--version"],
+      "subcommands": [
+        { "name": "build", "flags": ["-c", "--configuration", "--product", "--target", "-Xswiftc"] },
+        { "name": "run", "flags": ["-c", "--configuration"] },
+        { "name": "test", "flags": ["--filter", "--parallel", "-c"] },
+        { "name": "package", "subcommands": [
+          { "name": "init", "flags": ["--type", "--name"] },
+          { "name": "update" },
+          { "name": "resolve" },
+          { "name": "clean" },
+          { "name": "describe" }
+        ] }
+      ]
+    },
+    {
+      "name": "cargo",
+      "flags": ["--version"],
+      "subcommands": [
+        { "name": "build", "flags": ["--release", "--target", "--features"] },
+        { "name": "run", "flags": ["--release", "--bin", "--example"] },
+        { "name": "test", "flags": ["--release", "--workspace", "--no-run"] },
+        { "name": "check", "flags": ["--workspace", "--all-targets"] },
+        { "name": "clippy", "flags": ["--fix", "--workspace"] },
+        { "name": "fmt", "flags": ["--check"] },
+        { "name": "add", "flags": ["--dev", "--features"] },
+        { "name": "install", "flags": ["--locked", "--force"] },
+        { "name": "new", "flags": ["--lib", "--bin"] },
+        { "name": "update" },
+        { "name": "clean" },
+        { "name": "publish", "flags": ["--dry-run"] }
+      ]
+    },
+    {
+      "name": "python3",
+      "flags": ["--version", "-m", "-c", "-i", "-u"]
+    },
+    {
+      "name": "pip3",
+      "subcommands": [
+        { "name": "install", "flags": ["-U", "--upgrade", "-r", "--requirement", "-e", "--user", "--break-system-packages"] },
+        { "name": "uninstall", "flags": ["-y", "--yes"] },
+        { "name": "list", "flags": ["--outdated", "--user"] },
+        { "name": "show" },
+        { "name": "freeze" }
+      ]
+    },
+    {
+      "name": "kubectl",
+      "flags": ["--namespace", "-n", "--context", "--all-namespaces", "-A"],
+      "subcommands": [
+        { "name": "get", "flags": ["-o", "--output", "-w", "--watch", "--selector", "-l"] },
+        { "name": "describe" },
+        { "name": "apply", "flags": ["-f", "--filename", "-k", "--dry-run"] },
+        { "name": "delete", "flags": ["-f", "--force", "--grace-period"] },
+        { "name": "logs", "flags": ["-f", "--follow", "--tail", "--previous", "-c", "--container"] },
+        { "name": "exec", "flags": ["-it", "-c"] },
+        { "name": "port-forward" },
+        { "name": "rollout", "subcommands": [
+          { "name": "status" },
+          { "name": "restart" },
+          { "name": "undo" },
+          { "name": "history" }
+        ] },
+        { "name": "config", "subcommands": [
+          { "name": "get-contexts" },
+          { "name": "use-context" },
+          { "name": "current-context" }
+        ] },
+        { "name": "scale", "flags": ["--replicas"] }
+      ]
+    },
+    {
+      "name": "make",
+      "flags": ["-j", "-C", "-f", "--dry-run", "-n", "-B", "--always-make"]
+    },
+    {
+      "name": "ssh",
+      "flags": ["-p", "-i", "-L", "-R", "-N", "-f", "-A", "-t", "-v", "-o"]
+    },
+    {
+      "name": "scp",
+      "flags": ["-r", "-P", "-i", "-p", "-C"]
+    },
+    {
+      "name": "rsync",
+      "flags": ["-a", "--archive", "-v", "--verbose", "-z", "--compress", "--delete", "--progress", "--dry-run", "-n", "-e", "--exclude"]
+    },
+    {
+      "name": "curl",
+      "flags": ["-s", "--silent", "-S", "-L", "--location", "-o", "--output", "-O", "-H", "--header", "-X", "--request", "-d", "--data", "-F", "--form", "-u", "--user", "-I", "--head", "-k", "--insecure", "-v", "--verbose", "--json"]
+    },
+    {
+      "name": "wget",
+      "flags": ["-O", "-q", "--quiet", "-c", "--continue", "-r", "--recursive", "--no-check-certificate"]
+    },
+    {
+      "name": "tar",
+      "flags": ["-x", "-c", "-z", "-j", "-v", "-f", "-C", "--exclude", "-t", "-xzf", "-czf", "-xvf", "-cvf"]
+    },
+    {
+      "name": "zip",
+      "flags": ["-r", "-q", "-9", "-e", "-x"]
+    },
+    {
+      "name": "unzip",
+      "flags": ["-d", "-o", "-l", "-q"]
+    },
+    {
+      "name": "ls",
+      "flags": ["-l", "-a", "-la", "-lah", "-h", "-t", "-r", "-R", "-S", "-1", "-G", "-d"]
+    },
+    {
+      "name": "cd",
+      "flags": ["-"]
+    },
+    {
+      "name": "cat",
+      "flags": ["-n", "-b", "-s", "-A"]
+    },
+    {
+      "name": "grep",
+      "flags": ["-r", "-R", "-i", "-v", "-n", "-l", "-c", "-E", "-F", "-w", "-x", "-A", "-B", "-C", "--include", "--exclude", "--exclude-dir", "-o"]
+    },
+    {
+      "name": "rg",
+      "flags": ["-i", "--ignore-case", "-v", "-n", "--line-number", "-l", "--files-with-matches", "-t", "--type", "-g", "--glob", "-A", "-B", "-C", "--hidden", "--no-ignore", "-F", "--fixed-strings", "-w", "--word-regexp", "-c", "--count"]
+    },
+    {
+      "name": "find",
+      "flags": ["-name", "-iname", "-type", "-maxdepth", "-mindepth", "-mtime", "-size", "-exec", "-delete", "-not", "-path", "-newer"]
+    },
+    {
+      "name": "fd",
+      "flags": ["-e", "--extension", "-t", "--type", "-H", "--hidden", "-I", "--no-ignore", "-x", "--exec", "-d", "--max-depth", "-g", "--glob"]
+    },
+    {
+      "name": "mkdir",
+      "flags": ["-p", "-v", "-m"]
+    },
+    {
+      "name": "rmdir",
+      "flags": ["-p"]
+    },
+    {
+      "name": "rm",
+      "flags": ["-r", "-f", "-rf", "-i", "-v", "-d"]
+    },
+    {
+      "name": "cp",
+      "flags": ["-r", "-R", "-f", "-i", "-v", "-p", "-a", "-n"]
+    },
+    {
+      "name": "mv",
+      "flags": ["-f", "-i", "-v", "-n"]
+    },
+    {
+      "name": "ln",
+      "flags": ["-s", "-f", "-sf", "-v", "-h"]
+    },
+    {
+      "name": "touch",
+      "flags": ["-c", "-a", "-m", "-t"]
+    },
+    {
+      "name": "chmod",
+      "flags": ["-R", "-v", "+x", "755", "644", "600", "700"]
+    },
+    {
+      "name": "chown",
+      "flags": ["-R", "-v", "-h"]
+    },
+    {
+      "name": "ps",
+      "flags": ["aux", "-e", "-f", "-p", "-u"]
+    },
+    {
+      "name": "kill",
+      "flags": ["-9", "-15", "-INT", "-TERM", "-KILL", "-HUP", "-l"]
+    },
+    {
+      "name": "killall",
+      "flags": ["-9", "-v", "-i"]
+    },
+    {
+      "name": "top",
+      "flags": ["-o", "-n", "-pid", "-user"]
+    },
+    {
+      "name": "htop",
+      "flags": ["-u", "-p", "-s", "-t", "--tree"]
+    },
+    {
+      "name": "df",
+      "flags": ["-h", "-H", "-i", "-l"]
+    },
+    {
+      "name": "du",
+      "flags": ["-h", "-s", "-sh", "-d", "-a", "-c"]
+    },
+    {
+      "name": "head",
+      "flags": ["-n", "-c"]
+    },
+    {
+      "name": "tail",
+      "flags": ["-n", "-f", "-F", "-c", "-r"]
+    },
+    {
+      "name": "less",
+      "flags": ["-N", "-S", "-R", "+F", "-i"]
+    },
+    {
+      "name": "sort",
+      "flags": ["-r", "-n", "-u", "-k", "-t", "-h"]
+    },
+    {
+      "name": "uniq",
+      "flags": ["-c", "-d", "-u", "-i"]
+    },
+    {
+      "name": "wc",
+      "flags": ["-l", "-w", "-c", "-m"]
+    },
+    {
+      "name": "sed",
+      "flags": ["-i", "-e", "-n", "-E", "-f"]
+    },
+    {
+      "name": "awk",
+      "flags": ["-F", "-v", "-f"]
+    },
+    {
+      "name": "xargs",
+      "flags": ["-I", "-n", "-P", "-0", "-t", "-p"]
+    },
+    {
+      "name": "echo",
+      "flags": ["-n", "-e"]
+    },
+    {
+      "name": "which",
+      "flags": ["-a", "-s"]
+    },
+    {
+      "name": "man",
+      "flags": ["-k", "-f"]
+    },
+    {
+      "name": "history",
+      "flags": ["-c", "-d"]
+    },
+    {
+      "name": "export"
+    },
+    {
+      "name": "source"
+    },
+    {
+      "name": "open",
+      "flags": ["-a", "-e", "-t", "-R", "-n", "-g", "-u", "."]
+    },
+    {
+      "name": "code",
+      "flags": [".", "-r", "--reuse-window", "-n", "--new-window", "-g", "--goto", "-d", "--diff", "-w", "--wait", "--install-extension", "--list-extensions"]
+    },
+    {
+      "name": "vim",
+      "flags": ["-R", "-p", "-O", "-o", "-u", "+"]
+    },
+    {
+      "name": "nano",
+      "flags": ["-w", "-m", "-l", "+"]
+    },
+    {
+      "name": "claude",
+      "flags": ["--version", "--help", "-p", "--print", "-c", "--continue", "-r", "--resume", "--model", "--dangerously-skip-permissions", "--allowedTools", "--output-format", "--verbose"],
+      "subcommands": [
+        { "name": "mcp", "subcommands": [
+          { "name": "add", "flags": ["--transport", "--scope", "--env", "--header"] },
+          { "name": "list" },
+          { "name": "remove" },
+          { "name": "get" }
+        ] },
+        { "name": "config", "subcommands": [
+          { "name": "get" },
+          { "name": "set", "flags": ["--global"] },
+          { "name": "list" }
+        ] },
+        { "name": "update" },
+        { "name": "doctor" }
+      ]
+    },
+    {
+      "name": "defaults",
+      "subcommands": [
+        { "name": "read" },
+        { "name": "write" },
+        { "name": "delete" },
+        { "name": "domains" },
+        { "name": "find" }
+      ]
+    },
+    {
+      "name": "launchctl",
+      "subcommands": [
+        { "name": "load", "flags": ["-w"] },
+        { "name": "unload", "flags": ["-w"] },
+        { "name": "list" },
+        { "name": "start" },
+        { "name": "stop" },
+        { "name": "kickstart", "flags": ["-k"] },
+        { "name": "print" }
+      ]
+    },
+    {
+      "name": "osascript",
+      "flags": ["-e", "-l", "-i"]
+    },
+    {
+      "name": "pbcopy"
+    },
+    {
+      "name": "pbpaste"
+    },
+    {
+      "name": "diskutil",
+      "subcommands": [
+        { "name": "list" },
+        { "name": "info" },
+        { "name": "mount" },
+        { "name": "unmount" },
+        { "name": "eraseDisk" },
+        { "name": "verifyVolume" },
+        { "name": "repairVolume" }
+      ]
+    },
+    {
+      "name": "softwareupdate",
+      "flags": ["-l", "--list", "-i", "--install", "-a", "--all", "--restart"]
+    },
+    {
+      "name": "networksetup",
+      "flags": ["-listallnetworkservices", "-getinfo", "-setairportpower", "-getairportnetwork"]
+    },
+    {
+      "name": "caffeinate",
+      "flags": ["-d", "-i", "-s", "-t", "-u"]
+    },
+    {
+      "name": "screencapture",
+      "flags": ["-i", "-w", "-c", "-x", "-T", "-t"]
+    },
+    {
+      "name": "say",
+      "flags": ["-v", "-r", "-o", "-f"]
+    }
+  ]
+}

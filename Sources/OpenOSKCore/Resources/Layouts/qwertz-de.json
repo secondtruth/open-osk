@@ -1,0 +1,81 @@
+{
+  "id": "qwertz-de",
+  "name": "Deutsch (QWERTZ)",
+  "rows": [
+    [
+      { "special": "escape" },
+      { "base": "^", "shift": "°" },
+      { "base": "1", "shift": "!" },
+      { "base": "2", "shift": "\"" },
+      { "base": "3", "shift": "§" },
+      { "base": "4", "shift": "$" },
+      { "base": "5", "shift": "%", "alt": "[" },
+      { "base": "6", "shift": "&", "alt": "]" },
+      { "base": "7", "shift": "/", "alt": "|", "shiftAlt": "\\" },
+      { "base": "8", "shift": "(", "alt": "{" },
+      { "base": "9", "shift": ")", "alt": "}" },
+      { "base": "0", "shift": "=" },
+      { "base": "ß", "shift": "?" },
+      { "base": "´", "shift": "`" },
+      { "special": "delete", "width": 1.5 }
+    ],
+    [
+      { "special": "tab", "width": 1.5 },
+      { "base": "q", "alt": "«" },
+      { "base": "w" },
+      { "base": "e", "alt": "€" },
+      { "base": "r" },
+      { "base": "t" },
+      { "base": "z" },
+      { "base": "u" },
+      { "base": "i" },
+      { "base": "o" },
+      { "base": "p" },
+      { "base": "ü" },
+      { "base": "+", "shift": "*", "alt": "~" },
+      { "special": "forwardDelete", "width": 1.5 }
+    ],
+    [
+      { "special": "home", "width": 1.75 },
+      { "base": "a" },
+      { "base": "s" },
+      { "base": "d" },
+      { "base": "f" },
+      { "base": "g" },
+      { "base": "h" },
+      { "base": "j" },
+      { "base": "k" },
+      { "base": "l", "alt": "@" },
+      { "base": "ö" },
+      { "base": "ä" },
+      { "base": "#", "shift": "'" },
+      { "special": "return", "width": 1.75 }
+    ],
+    [
+      { "modifier": "shift", "width": 1.75 },
+      { "base": "<", "shift": ">", "alt": "|" },
+      { "base": "y" },
+      { "base": "x" },
+      { "base": "c" },
+      { "base": "v" },
+      { "base": "b" },
+      { "base": "n", "alt": "~" },
+      { "base": "m", "alt": "µ" },
+      { "base": ",", "shift": ";" },
+      { "base": ".", "shift": ":", "alt": "…" },
+      { "base": "-", "shift": "_", "alt": "–" },
+      { "modifier": "shift", "width": 1.75 }
+    ],
+    [
+      { "modifier": "control", "width": 1.25 },
+      { "modifier": "option", "width": 1.25 },
+      { "modifier": "command", "width": 1.25 },
+      { "special": "space", "width": 5.75 },
+      { "modifier": "command", "width": 1.25 },
+      { "special": "left" },
+      { "special": "up" },
+      { "special": "down" },
+      { "special": "right" }
+    ]
+  ]
+}
