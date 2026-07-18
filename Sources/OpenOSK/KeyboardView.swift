@@ -53,6 +53,7 @@ final class KeyView: NSView {
     var fontSize: CGFloat = 16
     var secondaryFontSize: CGFloat = 9
     var dwell = DwellConfiguration()
+    var theme = Theme.system
 
     var onPress: ((Key) -> Void)?
     /// Long-press hook for character keys; returns true if it was handled
@@ -100,8 +101,11 @@ final class KeyView: NSView {
     override var mouseDownCanMoveWindow: Bool { false }
 
     private var autorepeats: Bool {
-        if case .special(let special) = key.kind { return special.autorepeats }
-        return false
+        switch key.kind {
+        case .special(let special): return special.autorepeats
+        case .media(let media): return media.autorepeats
+        default: return false
+        }
     }
 
     /// Character and macro keys fire on release (enables long-press variants
@@ -249,20 +253,18 @@ final class KeyView: NSView {
 
         var fill: NSColor
         if isPressedVisual {
-            fill = .controlAccentColor
+            fill = theme.pressed
         } else {
             switch modifierState {
             case .off:
-                fill = isCharacter
-                    ? NSColor.controlColor
-                    : NSColor.controlColor.withAlphaComponent(0.55)
+                fill = isCharacter ? theme.keyFill : theme.specialFill
                 if isHovered {
-                    fill = fill.blended(withFraction: 0.15, of: .controlAccentColor) ?? fill
+                    fill = fill.blended(withFraction: 0.15, of: theme.pressed) ?? fill
                 }
             case .latched:
-                fill = NSColor.controlAccentColor.withAlphaComponent(0.35)
+                fill = theme.pressed.withAlphaComponent(0.35)
             case .locked:
-                fill = NSColor.controlAccentColor.withAlphaComponent(0.7)
+                fill = theme.pressed.withAlphaComponent(0.7)
             }
         }
         fill.setFill()
@@ -274,7 +276,7 @@ final class KeyView: NSView {
 
         if modifierState == .latched || modifierState == .locked {
             let border = NSBezierPath(roundedRect: rect.insetBy(dx: 1, dy: 1), xRadius: 6, yRadius: 6)
-            NSColor.controlAccentColor.setStroke()
+            theme.pressed.setStroke()
             border.lineWidth = 2
             border.stroke()
         }
@@ -287,7 +289,7 @@ final class KeyView: NSView {
             border.stroke()
         }
 
-        let textColor: NSColor = isPressedVisual ? .white : .labelColor
+        let textColor: NSColor = isPressedVisual ? theme.pressedText : theme.text
 
         if !displayText.isEmpty {
             let attributes: [NSAttributedString.Key: Any] = [
@@ -306,8 +308,8 @@ final class KeyView: NSView {
             let attributes: [NSAttributedString.Key: Any] = [
                 .font: NSFont.systemFont(ofSize: secondaryFontSize),
                 .foregroundColor: isPressedVisual
-                    ? NSColor.white.withAlphaComponent(0.8)
-                    : NSColor.secondaryLabelColor,
+                    ? theme.pressedText.withAlphaComponent(0.8)
+                    : theme.secondaryText,
             ]
             let size = secondaryText.size(withAttributes: attributes)
             let origin = NSPoint(
@@ -336,7 +338,7 @@ final class KeyView: NSView {
             clockwise: true
         )
         pie.close()
-        NSColor.controlAccentColor.withAlphaComponent(0.55).setFill()
+        theme.pressed.withAlphaComponent(0.55).setFill()
         pie.fill()
     }
 }
@@ -456,16 +458,24 @@ final class KeyboardView: NSView {
         return groups
     }
 
-    init(layout: KeyboardLayout, metrics: KeyboardMetrics, dwell: DwellConfiguration) {
+    let theme: Theme
+
+    init(
+        layout: KeyboardLayout,
+        metrics: KeyboardMetrics,
+        dwell: DwellConfiguration,
+        theme: Theme = .system
+    ) {
         self.layout = layout
         self.metrics = metrics
+        self.theme = theme
         super.init(frame: NSRect(origin: .zero, size: metrics.size(for: layout)))
         wantsLayer = true
 
         if metrics.showsCurrentText {
             currentTextLabel.font = .monospacedSystemFont(
                 ofSize: metrics.currentTextFontSize, weight: .regular)
-            currentTextLabel.textColor = .secondaryLabelColor
+            currentTextLabel.textColor = theme.secondaryText
             currentTextLabel.lineBreakMode = .byTruncatingHead
             currentTextLabel.alignment = .left
             addSubview(currentTextLabel)
@@ -484,6 +494,7 @@ final class KeyboardView: NSView {
                 view.fontSize = metrics.keyFontSize
                 view.secondaryFontSize = metrics.secondaryFontSize
                 view.dwell = dwell
+                view.theme = theme
                 view.onPress = { [weak self] key in self?.onKeyPress?(key) }
                 view.onLongPress = { [weak self] key, keyView in
                     self?.onKeyLongPress?(key, keyView) ?? false
@@ -521,7 +532,7 @@ final class KeyboardView: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         let path = NSBezierPath(roundedRect: bounds, xRadius: 14, yRadius: 14)
-        NSColor.windowBackgroundColor.setFill()
+        theme.background.setFill()
         path.fill()
         NSColor.separatorColor.setStroke()
         path.lineWidth = 1
@@ -560,6 +571,10 @@ final class KeyboardView: NSView {
                 view.modifierState = modifierStates[modifier] ?? .off
             case .macro:
                 view.displayText = key.label ?? key.text.map { String($0.prefix(6)) } ?? "◆"
+                view.secondaryText = nil
+                view.modifierState = .off
+            case .media(let media):
+                view.displayText = key.label ?? media.symbol
                 view.secondaryText = nil
                 view.modifierState = .off
             case nil:

@@ -39,3 +39,16 @@
 "Switch key:" = "Schalter-Taste:";
 "Space" = "Leertaste";
 "Return" = "Return";
+
+/* v0.4 */
+"Theme:" = "Design:";
+"System" = "System";
+"High Contrast" = "Hoher Kontrast";
+"Dark" = "Dunkel";
+"Light" = "Hell";
+"Use system dictionary for predictions" = "Systemwörterbuch für Vorschläge nutzen";
+"Key click sound" = "Tastenklick-Ton";
+"Advance key:" = "Weiter-Taste:";
+"None" = "Keine";
+"Edit App Profiles…" = "App-Profile bearbeiten …";
+"Open Panels Folder…" = "Panel-Ordner öffnen …";

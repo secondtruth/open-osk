@@ -1,7 +1,7 @@
 import AppKit
 import Foundation
 
-let appVersion = "0.3.0"
+let appVersion = "0.4.0"
 
 let arguments = CommandLine.arguments
 if arguments.contains("--version") {

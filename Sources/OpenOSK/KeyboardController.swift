@@ -1,4 +1,5 @@
 import AppKit
+import AVFoundation
 import OpenOSKCore
 
 /// Coordinates the keyboard panel: key handling, modifier latching,
@@ -48,10 +49,12 @@ final class KeyboardController: NSObject {
     private let learnedStore = LearnedWordsStore()
     private let bigrams = BigramModel.standard()
     private let profileStore = AppProfileStore()
+    private let commandUsage = CommandUsageStore()
     private let preferences = Preferences.shared
     private let variantPopup = VariantPopup()
     private let focusWatcher = FocusWatcher()
     private let scanController = ScanController()
+    private let speech = AVSpeechSynthesizer()
     private(set) lazy var panels = PanelsController(keyboardController: self)
 
     private let panel: KeyboardPanel
@@ -77,6 +80,8 @@ final class KeyboardController: NSObject {
         learnedStore.applyTo(predictor)
         shellCompleter.loadBundled()
         shellCompleter.loadUserCompletions()
+        shellCompleter.usageCounts = commandUsage.counts
+        loadSystemDictionaryIfEnabled()
 
         activeProfile = profileStore.profile(
             for: NSWorkspace.shared.frontmostApplication?.bundleIdentifier)
@@ -90,6 +95,13 @@ final class KeyboardController: NSObject {
             self?.handleTextFocusChange(hasTextFocus)
         }
         focusWatcher.attach(to: NSWorkspace.shared.frontmostApplication)
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(panelDidMove),
+            name: NSWindow.didMoveNotification,
+            object: panel
+        )
 
         // Discover bare commands on $PATH for terminal completion.
         DispatchQueue.global(qos: .utility).async { [weak self] in
@@ -117,10 +129,38 @@ final class KeyboardController: NSObject {
         if preferences.scanningEnabled {
             scanController.interval = preferences.scanInterval
             scanController.attach(to: keyboardView)
-            scanController.start(switchKey: preferences.scanSwitchKey)
+            let advanceKey = preferences.scanAdvanceKey
+            scanController.start(
+                switchKey: preferences.scanSwitchKey,
+                advanceKey: advanceKey == "none" ? nil : advanceKey
+            )
         } else {
             scanController.stop()
         }
+    }
+
+    private var systemDictionaryLoaded = false
+
+    private func loadSystemDictionaryIfEnabled() {
+        if preferences.systemDictionaryEnabled {
+            guard !systemDictionaryLoaded else { return }
+            systemDictionaryLoaded = true
+            let predictor = self.predictor
+            DispatchQueue.global(qos: .utility).async {
+                predictor.loadFallbackDictionary(atPath: "/usr/share/dict/words")
+            }
+        } else if systemDictionaryLoaded {
+            systemDictionaryLoaded = false
+            predictor.clearFallbackDictionary()
+        }
+    }
+
+    /// Remembers the panel position across launches (multi-display safe: the
+    /// saved origin is only used if it is still on a visible screen).
+    @objc private func panelDidMove(_ notification: Notification) {
+        guard didPositionPanel else { return }
+        UserDefaults.standard.set(
+            [panel.frame.origin.x, panel.frame.origin.y], forKey: "panelOrigin")
     }
 
     // MARK: - Panel
@@ -153,6 +193,15 @@ final class KeyboardController: NSObject {
     }
 
     private func positionAtBottomCenter() {
+        if let saved = UserDefaults.standard.array(forKey: "panelOrigin") as? [Double],
+           saved.count == 2 {
+            let origin = NSPoint(x: saved[0], y: saved[1])
+            let restoredFrame = NSRect(origin: origin, size: panel.frame.size)
+            if NSScreen.screens.contains(where: { $0.visibleFrame.intersects(restoredFrame) }) {
+                panel.setFrameOrigin(origin)
+                return
+            }
+        }
         guard let screen = NSScreen.main else { return }
         let frame = panel.frame
         let visible = screen.visibleFrame
@@ -170,7 +219,12 @@ final class KeyboardController: NSObject {
             time: preferences.dwellTime
         )
 
-        let view = KeyboardView(layout: layout, metrics: metrics, dwell: dwell)
+        let view = KeyboardView(
+            layout: layout,
+            metrics: metrics,
+            dwell: dwell,
+            theme: Theme.theme(id: preferences.themeID)
+        )
         view.onKeyPress = { [weak self] key in self?.handleKey(key) }
         view.onKeyLongPress = { [weak self] key, keyView in
             self?.handleLongPress(key, keyView: keyView) ?? false
@@ -271,6 +325,7 @@ final class KeyboardController: NSObject {
         applyEffectiveLayout()
         rebuildKeyboardView()
         applyScanningState()
+        loadSystemDictionaryIfEnabled()
         panels.rebuildOpenPanels()
     }
 
@@ -334,6 +389,9 @@ final class KeyboardController: NSObject {
         guard let kind = key.kind else { return }
         variantPopup.dismiss()
         noteActivity()
+        if preferences.keyClickSound {
+            NSSound(named: "Tink")?.play()
+        }
 
         switch kind {
         case .modifier(let modifier):
@@ -349,6 +407,9 @@ final class KeyboardController: NSObject {
 
         case .macro(let macro):
             runMacro(macro)
+
+        case .media(let media):
+            MediaKeyInjector.press(media)
         }
         releaseLatchedModifiers()
         refreshKeyCaps()
@@ -424,7 +485,10 @@ final class KeyboardController: NSObject {
         case .return:
             commitCurrentWord()
             injector.pressKey(special.keyCode, flags: flags)
-            tracker.submittedLine()
+            let line = tracker.submittedLine()
+            if terminalMode {
+                recordCommandUsage(fromLine: line)
+            }
         case .delete:
             injector.pressKey(special.keyCode, flags: flags)
             tracker.backspaced()
@@ -447,6 +511,17 @@ final class KeyboardController: NSObject {
         if !previous.isEmpty {
             bigrams.learn(previous: previous, next: word)
         }
+    }
+
+    private func recordCommandUsage(fromLine line: String) {
+        var tokens = line.split(separator: " ").map(String.init)
+        while let first = tokens.first,
+              ["sudo", "env", "time", "nohup"].contains(first) {
+            tokens.removeFirst()
+        }
+        guard let command = tokens.first, !command.isEmpty else { return }
+        commandUsage.record(command: command)
+        shellCompleter.usageCounts = commandUsage.counts
     }
 
     // MARK: - Macros
@@ -483,6 +558,16 @@ final class KeyboardController: NSObject {
                 }
                 if let target = step.open {
                     DispatchQueue.main.async { Self.open(target) }
+                }
+                if let panelID = step.panel {
+                    DispatchQueue.main.async { [weak self] in
+                        self?.panels.toggle(panelID: panelID)
+                    }
+                }
+                if let phrase = step.say {
+                    DispatchQueue.main.async { [weak self] in
+                        self?.speech.speak(AVSpeechUtterance(string: phrase))
+                    }
                 }
             }
         }

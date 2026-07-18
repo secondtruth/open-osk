@@ -56,7 +56,8 @@ final class PanelsController {
             dwell: DwellConfiguration(
                 enabled: preferences.dwellEnabled,
                 time: preferences.dwellTime
-            )
+            ),
+            theme: Theme.theme(id: preferences.themeID)
         )
         view.onKeyPress = { [weak self] key in
             self?.keyboardController.handleKey(key)

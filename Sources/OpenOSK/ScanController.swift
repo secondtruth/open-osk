@@ -30,25 +30,32 @@ final class ScanController {
     private var highlighted: [NSView] = []
 
     var interval: TimeInterval = 1.2
+    private var manualAdvance = false
     private let switchTap = SwitchTap()
 
     init() {
         switchTap.onSwitch = { [weak self] in self?.select() }
+        switchTap.onAdvance = { [weak self] in self?.advance() }
     }
 
-    var isRunning: Bool { timer != nil }
+    private(set) var isActive = false
 
     func attach(to view: KeyboardView?) {
         keyboardView = view
-        if isRunning {
+        if isActive {
             restartCycle()
         }
     }
 
-    func start(switchKey: String) {
+    /// Starts scanning. With an advance key set, the scan only moves when
+    /// that key is pressed (two-switch mode); otherwise a timer advances it.
+    func start(switchKey: String, advanceKey: String? = nil) {
         stop()
         switchTap.switchKeyCode = Self.switchKeyCodes[switchKey] ?? 49
+        switchTap.advanceKeyCode = advanceKey.flatMap { Self.switchKeyCodes[$0] }
+        manualAdvance = switchTap.advanceKeyCode != nil
         switchTap.start()
+        isActive = true
         level = .groups
         index = 0
         scheduleTimer()
@@ -56,6 +63,7 @@ final class ScanController {
     }
 
     func stop() {
+        isActive = false
         timer?.invalidate()
         timer = nil
         switchTap.stop()
@@ -72,6 +80,8 @@ final class ScanController {
 
     private func scheduleTimer() {
         timer?.invalidate()
+        timer = nil
+        guard !manualAdvance else { return }
         let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
             self?.advance()
         }
@@ -86,7 +96,7 @@ final class ScanController {
         applyHighlight()
     }
 
-    private func advance() {
+    func advance() {
         let groups = groups
         guard !groups.isEmpty else { return }
         switch level {
@@ -175,7 +185,9 @@ final class ScanController {
 /// signature) so synthetic Space/Return presses don't trigger the switch.
 private final class SwitchTap {
     var onSwitch: (() -> Void)?
+    var onAdvance: (() -> Void)?
     var switchKeyCode: CGKeyCode = 49
+    var advanceKeyCode: CGKeyCode?
 
     private var tap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
@@ -230,12 +242,18 @@ private final class SwitchTap {
         else { return Unmanaged.passUnretained(event) }
 
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
-        guard keyCode == Int64(switchKeyCode) else {
-            return Unmanaged.passUnretained(event)
+        if keyCode == Int64(switchKeyCode) {
+            DispatchQueue.main.async { [weak self] in
+                self?.onSwitch?()
+            }
+            return nil
         }
-        DispatchQueue.main.async { [weak self] in
-            self?.onSwitch?()
+        if let advanceKeyCode, keyCode == Int64(advanceKeyCode) {
+            DispatchQueue.main.async { [weak self] in
+                self?.onAdvance?()
+            }
+            return nil
         }
-        return nil
+        return Unmanaged.passUnretained(event)
     }
 }

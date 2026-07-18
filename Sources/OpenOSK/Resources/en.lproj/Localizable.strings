@@ -39,3 +39,16 @@
 "Switch key:" = "Switch key:";
 "Space" = "Space";
 "Return" = "Return";
+
+/* v0.4 */
+"Theme:" = "Theme:";
+"System" = "System";
+"High Contrast" = "High Contrast";
+"Dark" = "Dark";
+"Light" = "Light";
+"Use system dictionary for predictions" = "Use system dictionary for predictions";
+"Key click sound" = "Key click sound";
+"Advance key:" = "Advance key:";
+"None" = "None";
+"Edit App Profiles…" = "Edit App Profiles…";
+"Open Panels Folder…" = "Open Panels Folder…";

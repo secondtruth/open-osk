@@ -51,6 +51,28 @@ final class SettingsController: NSObject {
             target: self, action: #selector(dwellTimeChanged)
         )
 
+        let themePopup = NSPopUpButton()
+        themePopup.addItems(withTitles: Theme.all.map(\.name))
+        if let index = Theme.all.firstIndex(where: { $0.id == preferences.themeID }) {
+            themePopup.selectItem(at: index)
+        }
+        themePopup.target = self
+        themePopup.action = #selector(themeSelected)
+
+        let advanceKeyPopup = NSPopUpButton()
+        advanceKeyPopup.addItems(withTitles: [L("None")] + Self.switchKeys.map(\.title))
+        let advanceOptions = ["none"] + Self.switchKeys.map(\.id)
+        if let index = advanceOptions.firstIndex(of: preferences.scanAdvanceKey) {
+            advanceKeyPopup.selectItem(at: index)
+        }
+        advanceKeyPopup.target = self
+        advanceKeyPopup.action = #selector(advanceKeySelected)
+
+        let profilesButton = NSButton(
+            title: L("Edit App Profiles…"), target: self, action: #selector(editProfiles))
+        let panelsButton = NSButton(
+            title: L("Open Panels Folder…"), target: self, action: #selector(openPanelsFolder))
+
         let scanIntervalSlider = NSSlider(
             value: preferences.scanInterval, minValue: 0.5, maxValue: 3.0,
             target: self, action: #selector(scanIntervalChanged)
@@ -71,6 +93,7 @@ final class SettingsController: NSObject {
 
         let grid = NSGridView(views: [
             [label(L("Layout:")), layoutPopup],
+            [label(L("Theme:")), themePopup],
             [label(L("Key size:")), scaleSlider],
             [label(L("Opacity:")), opacitySlider],
             [NSGridCell.emptyContentView, checkbox(
@@ -98,6 +121,14 @@ final class SettingsController: NSObject {
                 selector: #selector(currentTextToggled),
                 state: preferences.showCurrentText)],
             [NSGridCell.emptyContentView, checkbox(
+                L("Use system dictionary for predictions"),
+                selector: #selector(systemDictionaryToggled),
+                state: preferences.systemDictionaryEnabled)],
+            [NSGridCell.emptyContentView, checkbox(
+                L("Key click sound"),
+                selector: #selector(keyClickToggled),
+                state: preferences.keyClickSound)],
+            [NSGridCell.emptyContentView, checkbox(
                 L("Fade keyboard when inactive"),
                 selector: #selector(fadeToggled),
                 state: preferences.inactivityFadeEnabled)],
@@ -116,6 +147,9 @@ final class SettingsController: NSObject {
                 state: preferences.scanningEnabled)],
             [label(L("Scan interval:")), scanIntervalSlider],
             [label(L("Switch key:")), switchKeyPopup],
+            [label(L("Advance key:")), advanceKeyPopup],
+            [NSGridCell.emptyContentView, profilesButton],
+            [NSGridCell.emptyContentView, panelsButton],
             [NSGridCell.emptyContentView, clearButton],
         ])
         grid.translatesAutoresizingMaskIntoConstraints = false
@@ -236,5 +270,46 @@ final class SettingsController: NSObject {
         let index = sender.indexOfSelectedItem
         guard Self.switchKeys.indices.contains(index) else { return }
         preferences.scanSwitchKey = Self.switchKeys[index].id
+    }
+
+    @objc private func themeSelected(_ sender: NSPopUpButton) {
+        let index = sender.indexOfSelectedItem
+        guard Theme.all.indices.contains(index) else { return }
+        preferences.themeID = Theme.all[index].id
+    }
+
+    @objc private func advanceKeySelected(_ sender: NSPopUpButton) {
+        let options = ["none"] + Self.switchKeys.map(\.id)
+        let index = sender.indexOfSelectedItem
+        guard options.indices.contains(index) else { return }
+        preferences.scanAdvanceKey = options[index]
+    }
+
+    @objc private func systemDictionaryToggled(_ sender: NSButton) {
+        preferences.systemDictionaryEnabled = sender.state == .on
+    }
+
+    @objc private func keyClickToggled(_ sender: NSButton) {
+        preferences.keyClickSound = sender.state == .on
+    }
+
+    /// Opens app-profiles.json in the default editor, creating a template on
+    /// first use (a profile editor UI is still on the roadmap).
+    @objc private func editProfiles() {
+        let url = LayoutStore.appSupportDirectory.appendingPathComponent("app-profiles.json")
+        if !FileManager.default.fileExists(atPath: url.path) {
+            try? FileManager.default.createDirectory(
+                at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            let template =
+                "{\n  \"com.microsoft.VSCode\": { \"terminalMode\": true }\n}\n"
+            try? Data(template.utf8).write(to: url)
+        }
+        NSWorkspace.shared.open(url)
+    }
+
+    @objc private func openPanelsFolder() {
+        let url = LayoutStore.userPanelsDirectory
+        try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        NSWorkspace.shared.open(url)
     }
 }
