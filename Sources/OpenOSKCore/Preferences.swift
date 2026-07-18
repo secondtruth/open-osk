@@ -30,6 +30,10 @@ public final class Preferences {
             Keys.scanInterval: 1.2,
             Keys.scanSwitchKey: "space",
             Keys.openPanelIDs: [String](),
+            Keys.themeID: "system",
+            Keys.keyClickSound: false,
+            Keys.systemDictionaryEnabled: false,
+            Keys.scanAdvanceKey: "none",
         ])
     }
 
@@ -54,6 +58,10 @@ public final class Preferences {
         static let scanInterval = "scanInterval"
         static let scanSwitchKey = "scanSwitchKey"
         static let openPanelIDs = "openPanelIDs"
+        static let themeID = "themeID"
+        static let keyClickSound = "keyClickSound"
+        static let systemDictionaryEnabled = "systemDictionaryEnabled"
+        static let scanAdvanceKey = "scanAdvanceKey"
     }
 
     public var layoutID: String {
@@ -168,6 +176,32 @@ public final class Preferences {
     public var openPanelIDs: [String] {
         get { defaults.stringArray(forKey: Keys.openPanelIDs) ?? [] }
         set { set(newValue, forKey: Keys.openPanelIDs) }
+    }
+
+    /// Visual theme id ("system", "high-contrast", "dark", "light").
+    public var themeID: String {
+        get { defaults.string(forKey: Keys.themeID) ?? "system" }
+        set { set(newValue, forKey: Keys.themeID) }
+    }
+
+    /// Play a click sound on key press.
+    public var keyClickSound: Bool {
+        get { defaults.bool(forKey: Keys.keyClickSound) }
+        set { set(newValue, forKey: Keys.keyClickSound) }
+    }
+
+    /// Merge /usr/share/dict/words as low-priority prediction fallback.
+    public var systemDictionaryEnabled: Bool {
+        get { defaults.bool(forKey: Keys.systemDictionaryEnabled) }
+        set { set(newValue, forKey: Keys.systemDictionaryEnabled) }
+    }
+
+    /// Optional second switch that advances the scan manually ("none"
+    /// disables it; otherwise same key names as `scanSwitchKey`). With an
+    /// advance key set, the automatic scan timer is disabled.
+    public var scanAdvanceKey: String {
+        get { defaults.string(forKey: Keys.scanAdvanceKey) ?? "none" }
+        set { set(newValue, forKey: Keys.scanAdvanceKey) }
     }
 
     private func set(_ value: Any, forKey key: String) {

@@ -1,4 +1,6 @@
+#if canImport(CoreGraphics)
 import CoreGraphics
+#endif
 import Foundation
 
 /// A latchable modifier key on the on-screen keyboard.
@@ -94,6 +96,54 @@ public enum SpecialKey: String, Codable, CaseIterable, Sendable {
     }
 }
 
+/// System/media control keys, posted as NX system-defined events (Apple
+/// platforms only; the poster lives in the app layer).
+public enum MediaKey: String, Codable, CaseIterable, Sendable {
+    case volumeUp
+    case volumeDown
+    case mute
+    case brightnessUp
+    case brightnessDown
+    case playPause
+    case next
+    case previous
+
+    /// NX_KEYTYPE_* value for IOKit system-defined events.
+    public var nxKeyType: Int32 {
+        switch self {
+        case .volumeUp: return 0
+        case .volumeDown: return 1
+        case .brightnessUp: return 2
+        case .brightnessDown: return 3
+        case .mute: return 7
+        case .playPause: return 16
+        case .next: return 19
+        case .previous: return 20
+        }
+    }
+
+    public var symbol: String {
+        switch self {
+        case .volumeUp: return "🔊"
+        case .volumeDown: return "🔉"
+        case .mute: return "🔇"
+        case .brightnessUp: return "☀︎+"
+        case .brightnessDown: return "☀︎−"
+        case .playPause: return "⏯"
+        case .next: return "⏭"
+        case .previous: return "⏮"
+        }
+    }
+
+    /// Volume/brightness keys repeat while held.
+    public var autorepeats: Bool {
+        switch self {
+        case .volumeUp, .volumeDown, .brightnessUp, .brightnessDown: return true
+        default: return false
+        }
+    }
+}
+
 /// A single key definition inside a layout.
 ///
 /// Exactly one of `base`, `special` or `modifier` should be set.
@@ -114,6 +164,8 @@ public struct Key: Codable, Equatable, Sendable {
     public var text: String?
     /// Macro executed by this key (programmable key).
     public var macro: Macro?
+    /// System/media control key.
+    public var media: MediaKey?
     /// Width in key units (1.0 = one standard key).
     public var width: Double?
     /// Display label override.
@@ -122,7 +174,7 @@ public struct Key: Codable, Equatable, Sendable {
     public init(
         base: String? = nil, shift: String? = nil, alt: String? = nil, shiftAlt: String? = nil,
         special: SpecialKey? = nil, modifier: Modifier? = nil,
-        text: String? = nil, macro: Macro? = nil,
+        text: String? = nil, macro: Macro? = nil, media: MediaKey? = nil,
         width: Double? = nil, label: String? = nil
     ) {
         self.base = base
@@ -133,6 +185,7 @@ public struct Key: Codable, Equatable, Sendable {
         self.modifier = modifier
         self.text = text
         self.macro = macro
+        self.media = media
         self.width = width
         self.label = label
     }
@@ -142,11 +195,13 @@ public struct Key: Codable, Equatable, Sendable {
         case special(SpecialKey)
         case modifier(Modifier)
         case macro(Macro)
+        case media(MediaKey)
     }
 
     public var kind: Kind? {
         if let macro { return .macro(macro) }
         if let text { return .macro(Macro(steps: [MacroStep(text: text)])) }
+        if let media { return .media(media) }
         if let special { return .special(special) }
         if let modifier { return .modifier(modifier) }
         if base != nil { return .character }

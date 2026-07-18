@@ -13,6 +13,9 @@ public final class WordPredictor {
 
     private let root = Node()
     private var nextRank = 0
+    /// Large sorted word list used as a low-priority fallback (kept out of
+    /// the trie to save memory; e.g. /usr/share/dict/words).
+    private var fallbackWords: [String] = []
 
     public init() {}
 
@@ -45,6 +48,22 @@ public final class WordPredictor {
         }
     }
 
+    /// Loads a large dictionary as lowest-priority fallback. The file is one
+    /// word per line; entries are lowercased and sorted for prefix search.
+    public func loadFallbackDictionary(atPath path: String, maxWordLength: Int = 16) {
+        guard let content = try? String(contentsOfFile: path, encoding: .utf8) else { return }
+        fallbackWords = content
+            .components(separatedBy: .newlines)
+            .lazy
+            .map { $0.lowercased() }
+            .filter { $0.count >= 3 && $0.count <= maxWordLength }
+            .sorted()
+    }
+
+    public func clearFallbackDictionary() {
+        fallbackWords = []
+    }
+
     // MARK: - Learning
 
     public func learn(_ word: String, count: Int = 1) {
@@ -72,9 +91,45 @@ public final class WordPredictor {
             return $0.word.count < $1.word.count
         }
 
-        return results
+        var suggestions = results
             .prefix(limit)
             .map { applyCapitalization(of: prefix, to: $0.word) }
+
+        if suggestions.count < limit {
+            let lowered = Set(suggestions.map { $0.lowercased() })
+            for word in fallbackMatches(forPrefix: prefix.lowercased()) {
+                guard suggestions.count < limit else { break }
+                guard !lowered.contains(word) else { continue }
+                suggestions.append(applyCapitalization(of: prefix, to: word))
+            }
+        }
+        return suggestions
+    }
+
+    /// Binary search into the sorted fallback list, then walk matches.
+    private func fallbackMatches(forPrefix prefix: String, cap: Int = 10) -> [String] {
+        guard !fallbackWords.isEmpty else { return [] }
+        var low = 0
+        var high = fallbackWords.count
+        while low < high {
+            let mid = (low + high) / 2
+            if fallbackWords[mid] < prefix {
+                low = mid + 1
+            } else {
+                high = mid
+            }
+        }
+        var matches: [String] = []
+        var index = low
+        while index < fallbackWords.count, matches.count < cap,
+              fallbackWords[index].hasPrefix(prefix) {
+            if fallbackWords[index] != prefix {
+                matches.append(fallbackWords[index])
+            }
+            index += 1
+        }
+        matches.sort { $0.count != $1.count ? $0.count < $1.count : $0 < $1 }
+        return matches
     }
 
     private func collect(

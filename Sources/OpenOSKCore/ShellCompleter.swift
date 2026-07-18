@@ -29,6 +29,9 @@ public final class ShellCompleter {
     /// Names loaded from curated completion data (as opposed to $PATH
     /// discovery); curated commands rank first in suggestions.
     private var curatedNames: Set<String> = []
+    /// How often each command was submitted; frequently used commands rank
+    /// first. Set from a `CommandUsageStore`.
+    public var usageCounts: [String: Int] = [:]
 
     /// Command prefixes that are transparent for completion purposes.
     private static let passthroughCommands: Set<String> = ["sudo", "env", "time", "nohup", "xargs"]
@@ -119,12 +122,20 @@ public final class ShellCompleter {
             previous.removeFirst()
         }
 
+        if current.hasPrefix("/") || current.hasPrefix("~") {
+            return Self.pathSuggestions(forToken: current, limit: limit)
+        }
+
         if previous.isEmpty {
-            // Rank curated commands (with flag knowledge) before discovered
-            // ones, then shorter and alphabetically earlier names first.
+            // Rank frequently used commands first, then curated commands
+            // (with flag knowledge), then shorter and alphabetically earlier
+            // names.
             let candidates = commands.map(\.name)
                 .filter { $0.hasPrefix(current) && $0 != current }
                 .sorted { lhs, rhs in
+                    let lhsUsage = usageCounts[lhs] ?? 0
+                    let rhsUsage = usageCounts[rhs] ?? 0
+                    if lhsUsage != rhsUsage { return lhsUsage > rhsUsage }
                     let lhsCurated = curatedNames.contains(lhs)
                     let rhsCurated = curatedNames.contains(rhs)
                     if lhsCurated != rhsCurated { return lhsCurated }
@@ -149,6 +160,35 @@ public final class ShellCompleter {
             return match(subcommands.map(\.name), prefix: current, limit: limit)
         }
         return []
+    }
+
+    /// Completes absolute and `~`-relative filesystem paths. Directories get
+    /// a trailing slash so completion can continue. Relative paths are not
+    /// completed — the target shell's working directory is unknown.
+    public static func pathSuggestions(forToken token: String, limit: Int = 5) -> [String] {
+        guard token.hasPrefix("/") || token.hasPrefix("~") else { return [] }
+        let slashIndex = token.lastIndex(of: "/")
+        // "~" without a slash yet: complete to "~/"
+        guard let slashIndex else { return token == "~" ? ["~/"] : [] }
+
+        let displayedDirectory = String(token[...slashIndex])
+        let namePrefix = String(token[token.index(after: slashIndex)...])
+        let expandedDirectory = (displayedDirectory as NSString).expandingTildeInPath
+
+        let fileManager = FileManager.default
+        guard let entries = try? fileManager.contentsOfDirectory(atPath: expandedDirectory) else {
+            return []
+        }
+        return entries
+            .filter { $0.hasPrefix(namePrefix) && !($0.hasPrefix(".") && namePrefix.isEmpty) }
+            .sorted()
+            .prefix(limit)
+            .map { name in
+                var isDirectory: ObjCBool = false
+                fileManager.fileExists(
+                    atPath: expandedDirectory + "/" + name, isDirectory: &isDirectory)
+                return displayedDirectory + name + (isDirectory.boolValue ? "/" : "")
+            }
     }
 
     private func match(_ candidates: [String], prefix: String, limit: Int) -> [String] {

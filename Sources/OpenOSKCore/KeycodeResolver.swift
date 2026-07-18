@@ -1,3 +1,4 @@
+#if canImport(Carbon)
 import Carbon.HIToolbox
 import CoreGraphics
 import Foundation
@@ -90,3 +91,4 @@ public final class KeycodeResolver {
         }
     }
 }
+#endif

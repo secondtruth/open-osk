@@ -1,3 +1,4 @@
+#if canImport(ApplicationServices)
 import ApplicationServices
 import CoreGraphics
 import Foundation
@@ -62,3 +63,4 @@ public final class KeyInjector {
         usleep(interEventDelay)
     }
 }
+#endif

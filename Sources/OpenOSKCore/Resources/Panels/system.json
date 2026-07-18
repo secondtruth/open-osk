@@ -1,0 +1,20 @@
+{
+  "id": "system-panel",
+  "name": "System",
+  "rows": [
+    [
+      { "media": "volumeDown" },
+      { "media": "volumeUp" },
+      { "media": "mute" },
+      { "media": "brightnessDown" },
+      { "media": "brightnessUp" }
+    ],
+    [
+      { "media": "previous" },
+      { "media": "playPause" },
+      { "media": "next" },
+      { "label": "🔒", "macro": { "steps": [ { "shortcut": "ctrl+cmd+q" } ] } },
+      { "label": "📸", "macro": { "steps": [ { "shortcut": "cmd+shift+4" } ] } }
+    ]
+  ]
+}

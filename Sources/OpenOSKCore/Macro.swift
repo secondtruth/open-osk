@@ -1,4 +1,6 @@
+#if canImport(CoreGraphics)
 import CoreGraphics
+#endif
 import Foundation
 
 /// A programmable key action: a sequence of steps that insert text, press
@@ -13,7 +15,10 @@ public struct Macro: Codable, Equatable, Sendable {
     /// Macros that only insert text can keep the composition tracker in sync;
     /// anything else invalidates it.
     public var isPlainText: Bool {
-        steps.allSatisfy { $0.text != nil && $0.shortcut == nil && $0.open == nil }
+        steps.allSatisfy {
+            $0.text != nil && $0.shortcut == nil && $0.open == nil
+                && $0.panel == nil && $0.say == nil
+        }
     }
 }
 
@@ -26,13 +31,22 @@ public struct MacroStep: Codable, Equatable, Sendable {
     public var shortcut: String?
     /// URL or absolute file path to open.
     public var open: String?
+    /// Panel id to toggle.
+    public var panel: String?
+    /// Phrase to speak aloud.
+    public var say: String?
     /// Delay in milliseconds before this step runs.
     public var delayMs: Int?
 
-    public init(text: String? = nil, shortcut: String? = nil, open: String? = nil, delayMs: Int? = nil) {
+    public init(
+        text: String? = nil, shortcut: String? = nil, open: String? = nil,
+        panel: String? = nil, say: String? = nil, delayMs: Int? = nil
+    ) {
         self.text = text
         self.shortcut = shortcut
         self.open = open
+        self.panel = panel
+        self.say = say
         self.delayMs = delayMs
     }
 }
