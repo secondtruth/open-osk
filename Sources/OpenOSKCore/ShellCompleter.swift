@@ -185,7 +185,8 @@ public final class ShellCompleter {
             .prefix(limit)
             .map { name in
                 var isDirectory: ObjCBool = false
-                fileManager.fileExists(
+                // Result is @discardableResult on macOS but not on Linux.
+                _ = fileManager.fileExists(
                     atPath: expandedDirectory + "/" + name, isDirectory: &isDirectory)
                 return displayedDirectory + name + (isDirectory.boolValue ? "/" : "")
             }

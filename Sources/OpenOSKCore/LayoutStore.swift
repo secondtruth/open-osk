@@ -18,7 +18,8 @@ public enum LayoutStore {
             forResourcesWithExtension: "json",
             subdirectory: "Resources/Layouts"
         ) else { return [] }
-        return decodeLayouts(from: urls)
+        // On Linux, this API returns [NSURL]; bridge to [URL] for both platforms.
+        return decodeLayouts(from: urls.map { $0 as URL })
     }
 
     public static func userLayouts() -> [KeyboardLayout] {
@@ -53,7 +54,8 @@ public enum LayoutStore {
             forResourcesWithExtension: "json",
             subdirectory: "Resources/Panels"
         ) else { return [] }
-        return decodeLayouts(from: urls)
+        // On Linux, this API returns [NSURL]; bridge to [URL] for both platforms.
+        return decodeLayouts(from: urls.map { $0 as URL })
     }
 
     public static func userPanels() -> [KeyboardLayout] {
