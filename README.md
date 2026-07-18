@@ -1,6 +1,6 @@
 # OpenOSK — Open On-Screen Keyboard
 
-[![CI](https://github.com/secondtruth/OpenOSK/actions/workflows/ci.yml/badge.svg)](https://github.com/secondtruth/OpenOSK/actions/workflows/ci.yml)
+[![CI](https://github.com/secondtruth/open-osk/actions/workflows/ci.yml/badge.svg)](https://github.com/secondtruth/open-osk/actions/workflows/ci.yml)
 
 OpenOSK is an open-source on-screen keyboard and accessibility tool suite for macOS,
 built for people with limited mobility — including developers. It combines ideas from
