@@ -1,3 +1,4 @@
+#if canImport(AppKit)
 import AppKit
 
 /// Borderless floating panel that never takes key or main status, so the
@@ -25,3 +26,4 @@ final class KeyboardPanel: NSPanel {
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
 }
+#endif

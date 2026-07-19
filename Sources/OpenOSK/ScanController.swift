@@ -1,3 +1,4 @@
+#if canImport(AppKit)
 import AppKit
 import OpenOSKCore
 
@@ -257,3 +258,4 @@ private final class SwitchTap {
         return Unmanaged.passUnretained(event)
     }
 }
+#endif

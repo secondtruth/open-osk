@@ -22,13 +22,15 @@ jobs:
           .build/debug/openosk --version
           # The full --smoke-test needs a window server; keep CI headless-safe.
 
-  linux-core:
-    name: Linux core build
+  linux:
+    name: Linux build & test
     runs-on: ubuntu-latest
     container: swift:6.1
     steps:
       - uses: actions/checkout@v4
       - name: Swift version
         run: swift --version
-      - name: Build OpenOSKCore
-        run: swift build --target OpenOSKCore
+      - name: Build
+        run: swift build
+      - name: Test
+        run: swift test

@@ -29,9 +29,14 @@ offers, such as shell command completion for terminal work.
 - **Custom panels**: floating button collections in the spirit of Apple's Panel
   Editor — Git, Editing, and System (volume/brightness/media) panels ship as
   examples; add your own JSON to `~/Library/Application Support/OpenOSK/Panels/`.
-  Macro steps can also toggle panels (`"panel"`) and speak phrases (`"say"`)
-- **Per-app profiles**: force a layout or terminal mode per application (e.g.
-  terminal completions inside VS Code) via `app-profiles.json`
+  Macro steps can also toggle panels (`"panel"`) and speak phrases (`"say"`);
+  panel buttons can show SF Symbols (`"image"`) instead of text labels
+- **Per-app profiles**: force a layout or terminal mode per application, edited
+  in a built-in table UI (menu bar → "App Profiles…"); inside VS Code and
+  friends, the integrated terminal is auto-detected via the Accessibility API
+- **Built-in Panel Editor**: create and edit panels without touching JSON —
+  buttons with label, SF Symbol icon, and action (insert text, type+return,
+  shortcut, open URL/file); hand-written macros survive round-trips
 - **Word prediction** with bundled German and English word lists, capitalization
   carry-over, and **learning from your own typing** (persisted across sessions),
   plus **next-word prediction** from learned word pairs (bigrams) and an
@@ -125,6 +130,13 @@ CLI flags: `--version`, `--help`, `--smoke-test` (start, verify initialization, 
 | `Sources/OpenOSK` | AppKit app: keyboard panel, Texter, settings, menu bar |
 | `Tests/OpenOSKCoreTests` | Unit tests (Swift Testing) |
 | `scripts/bundle.sh` | Builds `build/OpenOSK.app` |
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) — data contributions (layouts, word
+lists, completions, translations) need no Swift knowledge, and accessibility
+experience reports are the most valuable input of all. CI builds and tests the
+package on macOS and Linux (the core is portable by design).
 
 ## License
 

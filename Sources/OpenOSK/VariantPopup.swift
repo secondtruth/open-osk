@@ -1,3 +1,4 @@
+#if canImport(AppKit)
 import AppKit
 import OpenOSKCore
 
@@ -105,3 +106,4 @@ private final class PopupBackgroundView: NSView {
         path.stroke()
     }
 }
+#endif

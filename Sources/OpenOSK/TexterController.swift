@@ -1,3 +1,4 @@
+#if canImport(AppKit)
 import AppKit
 import OpenOSKCore
 
@@ -181,3 +182,4 @@ final class TexterController: NSObject, NSWindowDelegate {
         }
     }
 }
+#endif

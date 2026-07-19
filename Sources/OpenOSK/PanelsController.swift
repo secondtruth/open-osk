@@ -1,3 +1,4 @@
+#if canImport(AppKit)
 import AppKit
 import OpenOSKCore
 
@@ -115,3 +116,4 @@ final class PanelsController {
         preferences.openPanelIDs = Array(openPanels.keys).sorted()
     }
 }
+#endif

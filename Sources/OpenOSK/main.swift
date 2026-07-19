@@ -1,7 +1,9 @@
+#if canImport(AppKit)
 import AppKit
+#endif
 import Foundation
 
-let appVersion = "0.4.0"
+let appVersion = "0.5.0"
 
 let arguments = CommandLine.arguments
 if arguments.contains("--version") {
@@ -28,8 +30,15 @@ if arguments.contains("--help") {
     exit(0)
 }
 
+#if canImport(AppKit)
 let app = NSApplication.shared
 let delegate = AppDelegate()
 app.delegate = delegate
 app.setActivationPolicy(.accessory)
 app.run()
+#else
+// The UI is AppKit-only; this stub exists so the whole package (and its
+// test target) builds on Linux, where only OpenOSKCore is functional.
+print("OpenOSK \(appVersion): the UI requires macOS; only OpenOSKCore is available on this platform.")
+exit(1)
+#endif

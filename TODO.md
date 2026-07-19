@@ -52,13 +52,24 @@
 - [x] GitHub Actions CI: macOS build+test, Linux build of OpenOSKCore
       (core is canImport-guarded; data model builds without CoreGraphics)
 
-## v0.5 candidates
+## Done (v0.5)
 
-- [ ] Graphical editors for app profiles, macros, and panels (currently JSON)
-- [ ] Panel buttons with images; scanning across open panels
+- [x] Profile editor UI (table: bundle id, layout, terminal mode; "add
+      frontmost app")
+- [x] Panel editor UI (buttons with row/label/symbol/action/value; custom
+      JSON macros preserved on round-trip)
+- [x] Panel buttons with SF Symbol images
+- [x] VS Code & friends: integrated-terminal detection via focused AX element
+- [x] Cross-platform core: whole package (app stubbed) builds and all tests
+      run on Linux; CI runs swift test on both OSes
+- [x] CONTRIBUTING.md
+
+## v0.6 candidates
+
+- [ ] Scanning across open panels
 - [ ] Larger frequency-ordered word lists (de/en)
-- [ ] VS Code: detect integrated-terminal focus via AX (profile workaround
-      exists: terminalMode=true for com.microsoft.VSCode)
+- [ ] Macro editor for multi-step macros (editor currently maps single-step
+      actions; complex macros remain JSON)
 
 ## Later
 

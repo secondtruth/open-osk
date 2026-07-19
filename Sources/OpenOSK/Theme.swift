@@ -1,3 +1,4 @@
+#if canImport(AppKit)
 import AppKit
 
 /// Visual theme for the keyboard and panels. "System" follows the macOS
@@ -70,3 +71,4 @@ struct Theme {
         all.first { $0.id == id } ?? .system
     }
 }
+#endif

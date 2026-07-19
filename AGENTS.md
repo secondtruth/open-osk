@@ -71,6 +71,9 @@ Two targets plus tests:
   - `PanelsController.swift` — floating custom panels (layout JSON reused);
     open state persisted in preferences; panels route key presses into
     `KeyboardController.handleKey`
+  - `ProfileEditorController.swift` / `PanelEditorController.swift` —
+    table-based editors writing app-profiles.json and user panel JSON; they
+    post `.openOSKProfilesChanged` / `.openOSKPanelsChanged` notifications
   - `TexterController.swift` — compose window; injects into the previously
     frontmost app by typing or pasteboard+⌘V (with clipboard restore)
   - `SettingsController.swift`, `StatusBarController.swift`, `AppDelegate.swift`,
@@ -91,9 +94,11 @@ Two targets plus tests:
   Settings) is a separate activating window.
 - Sending events requires Accessibility trust (`AXIsProcessTrustedWithOptions`).
   The smoke test deliberately skips the prompt.
-- `OpenOSKCore` must keep building on Linux (CI job `linux-core`): Apple-only
-  files are wrapped in `#if canImport(...)`, and `PlatformTypes.swift` shims
-  `CGKeyCode`/`CGEventFlags` when CoreGraphics is unavailable. New core code
-  should stick to Foundation or extend the shims.
+- The whole package builds and tests on Linux (CI job `linux`): Apple-only
+  files are wrapped in `#if canImport(...)` (AppKit for the app target,
+  ApplicationServices/Carbon in core), `PlatformTypes.swift` shims
+  `CGKeyCode`/`CGEventFlags`, and `main.swift` has a non-AppKit stub. New core
+  code should stick to Foundation or extend the shims; new app files need the
+  `#if canImport(AppKit)` wrapper.
 - UI strings go through `L("English key")` with English and German
   `Localizable.strings`; code and docs are always English.

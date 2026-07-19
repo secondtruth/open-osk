@@ -1,3 +1,4 @@
+#if canImport(AppKit)
 import AppKit
 import OpenOSKCore
 
@@ -27,3 +28,4 @@ enum MediaKeyInjector {
         event.cgEvent?.post(tap: .cghidEventTap)
     }
 }
+#endif
