@@ -41,4 +41,15 @@ public final class AppProfileStore {
         }
         profiles = (try? JSONDecoder().decode([String: AppProfile].self, from: data)) ?? [:]
     }
+
+    /// Persists the given profiles and adopts them as the current state.
+    public func write(profiles: [String: AppProfile]) throws {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        let data = try encoder.encode(profiles)
+        try FileManager.default.createDirectory(
+            at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try data.write(to: fileURL, options: .atomic)
+        self.profiles = profiles
+    }
 }

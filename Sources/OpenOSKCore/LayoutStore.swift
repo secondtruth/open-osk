@@ -78,6 +78,26 @@ public enum LayoutStore {
         allPanels().first { $0.id == id }
     }
 
+    /// Saves a panel into the user panels directory (overriding a bundled
+    /// panel with the same id, per the usual precedence).
+    public static func writeUserPanel(_ panel: KeyboardLayout) throws {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        let data = try encoder.encode(panel)
+        try FileManager.default.createDirectory(
+            at: userPanelsDirectory, withIntermediateDirectories: true)
+        let url = userPanelsDirectory.appendingPathComponent("\(panel.id).json")
+        try data.write(to: url, options: .atomic)
+    }
+
+    /// Removes a user panel file; bundled panels cannot be deleted.
+    @discardableResult
+    public static func deleteUserPanel(id: String) -> Bool {
+        let url = userPanelsDirectory.appendingPathComponent("\(id).json")
+        guard FileManager.default.fileExists(atPath: url.path) else { return false }
+        return (try? FileManager.default.removeItem(at: url)) != nil
+    }
+
     private static func decodeLayouts(from urls: [URL]) -> [KeyboardLayout] {
         urls.compactMap { url in
             guard let data = try? Data(contentsOf: url) else { return nil }

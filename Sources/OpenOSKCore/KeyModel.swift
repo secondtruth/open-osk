@@ -166,6 +166,8 @@ public struct Key: Codable, Equatable, Sendable {
     public var macro: Macro?
     /// System/media control key.
     public var media: MediaKey?
+    /// SF Symbol name displayed instead of the text label (panels).
+    public var image: String?
     /// Width in key units (1.0 = one standard key).
     public var width: Double?
     /// Display label override.
@@ -175,7 +177,7 @@ public struct Key: Codable, Equatable, Sendable {
         base: String? = nil, shift: String? = nil, alt: String? = nil, shiftAlt: String? = nil,
         special: SpecialKey? = nil, modifier: Modifier? = nil,
         text: String? = nil, macro: Macro? = nil, media: MediaKey? = nil,
-        width: Double? = nil, label: String? = nil
+        image: String? = nil, width: Double? = nil, label: String? = nil
     ) {
         self.base = base
         self.shift = shift
@@ -186,6 +188,7 @@ public struct Key: Codable, Equatable, Sendable {
         self.text = text
         self.macro = macro
         self.media = media
+        self.image = image
         self.width = width
         self.label = label
     }
