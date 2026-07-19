@@ -1,3 +1,4 @@
+#if canImport(AppKit)
 import AppKit
 import OpenOSKCore
 
@@ -47,6 +48,8 @@ final class KeyView: NSView {
     let key: Key
     var displayText = ""
     var secondaryText: String?
+    /// SF Symbol shown instead of the text label.
+    var imageName: String?
     var modifierState: ModifierVisualState = .off {
         didSet { needsDisplay = true }
     }
@@ -291,7 +294,25 @@ final class KeyView: NSView {
 
         let textColor: NSColor = isPressedVisual ? theme.pressedText : theme.text
 
-        if !displayText.isEmpty {
+        if let imageName,
+           let symbol = NSImage(systemSymbolName: imageName, accessibilityDescription: displayText) {
+            let configured = symbol.withSymbolConfiguration(
+                NSImage.SymbolConfiguration(pointSize: fontSize * 1.15, weight: .medium)
+            ) ?? symbol
+            let tinted = NSImage(size: configured.size, flipped: false) { rect in
+                configured.draw(in: rect)
+                textColor.set()
+                rect.fill(using: .sourceAtop)
+                return true
+            }
+            let size = tinted.size
+            tinted.draw(in: NSRect(
+                x: bounds.midX - size.width / 2,
+                y: bounds.midY - size.height / 2,
+                width: size.width,
+                height: size.height
+            ))
+        } else if !displayText.isEmpty {
             let attributes: [NSAttributedString.Key: Any] = [
                 .font: NSFont.systemFont(ofSize: fontSize, weight: isCharacter ? .regular : .medium),
                 .foregroundColor: textColor,
@@ -580,6 +601,7 @@ final class KeyboardView: NSView {
             case nil:
                 break
             }
+            view.imageName = key.image
             view.needsDisplay = true
         }
     }
@@ -623,3 +645,4 @@ final class KeyboardView: NSView {
         }
     }
 }
+#endif

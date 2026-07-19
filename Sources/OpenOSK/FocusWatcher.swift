@@ -1,11 +1,19 @@
+#if canImport(AppKit)
 import AppKit
 import ApplicationServices
 
+/// What is currently focused in the frontmost app, as far as AX tells us.
+struct FocusInfo {
+    var isTextInput: Bool
+    var role: String?
+    var descriptionText: String?
+}
+
 /// Watches the frontmost application's focused UI element via the
-/// Accessibility API and reports whether a text-input element has focus.
-/// Used for the "show keyboard automatically when editing text" feature.
+/// Accessibility API and reports focus changes. Drives "show keyboard when
+/// editing text" and the editor-integrated-terminal detection.
 final class FocusWatcher {
-    var onTextFocusChange: ((Bool) -> Void)?
+    var onFocusChange: ((FocusInfo) -> Void)?
 
     private var observer: AXObserver?
     private var appElement: AXUIElement?
@@ -65,7 +73,7 @@ final class FocusWatcher {
         let result = AXUIElementCopyAttributeValue(
             appElement, kAXFocusedUIElementAttribute as CFString, &value)
         guard result == .success, let value, CFGetTypeID(value) == AXUIElementGetTypeID() else {
-            onTextFocusChange?(false)
+            onFocusChange?(FocusInfo(isTextInput: false, role: nil, descriptionText: nil))
             return
         }
         reportFocus(of: value as! AXUIElement)
@@ -75,9 +83,25 @@ final class FocusWatcher {
         var roleValue: CFTypeRef?
         AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &roleValue)
         let role = roleValue as? String
-        let isText = role.map { Self.textRoles.contains($0) } ?? false
+
+        var descriptionValue: CFTypeRef?
+        AXUIElementCopyAttributeValue(
+            element, kAXDescriptionAttribute as CFString, &descriptionValue)
+        var description = descriptionValue as? String
+        if description?.isEmpty != false {
+            var titleValue: CFTypeRef?
+            AXUIElementCopyAttributeValue(element, kAXTitleAttribute as CFString, &titleValue)
+            description = titleValue as? String
+        }
+
+        let info = FocusInfo(
+            isTextInput: role.map { Self.textRoles.contains($0) } ?? false,
+            role: role,
+            descriptionText: description
+        )
         DispatchQueue.main.async { [weak self] in
-            self?.onTextFocusChange?(isText)
+            self?.onFocusChange?(info)
         }
     }
 }
+#endif

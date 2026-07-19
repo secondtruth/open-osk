@@ -1,3 +1,4 @@
+#if canImport(AppKit)
 import AppKit
 import OpenOSKCore
 
@@ -73,6 +74,8 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         scanItem.state = Preferences.shared.scanningEnabled ? .on : .off
         menu.addItem(scanItem)
 
+        menu.addItem(makeItem(title: L("Panel Editor…"), action: #selector(openPanelEditor)))
+        menu.addItem(makeItem(title: L("App Profiles…"), action: #selector(openProfileEditor)))
         menu.addItem(makeItem(title: L("Settings…"), action: #selector(openSettings)))
         menu.addItem(.separator())
 
@@ -122,6 +125,14 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         appDelegate.settingsController.show()
     }
 
+    @objc private func openPanelEditor() {
+        appDelegate.panelEditorController.show()
+    }
+
+    @objc private func openProfileEditor() {
+        appDelegate.profileEditorController.show()
+    }
+
     @objc private func openAccessibilitySettings() {
         let url = URL(
             string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
@@ -141,3 +152,4 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         NSApp.terminate(nil)
     }
 }
+#endif

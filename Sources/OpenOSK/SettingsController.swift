@@ -1,3 +1,4 @@
+#if canImport(AppKit)
 import AppKit
 import OpenOSKCore
 
@@ -69,8 +70,10 @@ final class SettingsController: NSObject {
         advanceKeyPopup.action = #selector(advanceKeySelected)
 
         let profilesButton = NSButton(
-            title: L("Edit App Profiles…"), target: self, action: #selector(editProfiles))
+            title: L("App Profiles…"), target: self, action: #selector(editProfiles))
         let panelsButton = NSButton(
+            title: L("Panel Editor…"), target: self, action: #selector(editPanels))
+        let panelsFolderButton = NSButton(
             title: L("Open Panels Folder…"), target: self, action: #selector(openPanelsFolder))
 
         let scanIntervalSlider = NSSlider(
@@ -150,6 +153,7 @@ final class SettingsController: NSObject {
             [label(L("Advance key:")), advanceKeyPopup],
             [NSGridCell.emptyContentView, profilesButton],
             [NSGridCell.emptyContentView, panelsButton],
+            [NSGridCell.emptyContentView, panelsFolderButton],
             [NSGridCell.emptyContentView, clearButton],
         ])
         grid.translatesAutoresizingMaskIntoConstraints = false
@@ -293,18 +297,12 @@ final class SettingsController: NSObject {
         preferences.keyClickSound = sender.state == .on
     }
 
-    /// Opens app-profiles.json in the default editor, creating a template on
-    /// first use (a profile editor UI is still on the roadmap).
     @objc private func editProfiles() {
-        let url = LayoutStore.appSupportDirectory.appendingPathComponent("app-profiles.json")
-        if !FileManager.default.fileExists(atPath: url.path) {
-            try? FileManager.default.createDirectory(
-                at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-            let template =
-                "{\n  \"com.microsoft.VSCode\": { \"terminalMode\": true }\n}\n"
-            try? Data(template.utf8).write(to: url)
-        }
-        NSWorkspace.shared.open(url)
+        (NSApp.delegate as? AppDelegate)?.profileEditorController.show()
+    }
+
+    @objc private func editPanels() {
+        (NSApp.delegate as? AppDelegate)?.panelEditorController.show()
     }
 
     @objc private func openPanelsFolder() {
@@ -313,3 +311,4 @@ final class SettingsController: NSObject {
         NSWorkspace.shared.open(url)
     }
 }
+#endif

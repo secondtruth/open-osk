@@ -52,3 +52,34 @@
 "None" = "None";
 "Edit App Profiles…" = "Edit App Profiles…";
 "Open Panels Folder…" = "Open Panels Folder…";
+
+/* Editors (v0.5) */
+"App Profiles" = "App Profiles";
+"App Profiles…" = "App Profiles…";
+"Bundle Identifier" = "Bundle Identifier";
+"Terminal Mode" = "Terminal Mode";
+"Automatic" = "Automatic";
+"On" = "On";
+"Off" = "Off";
+"Add Frontmost App" = "Add Frontmost App";
+"Save" = "Save";
+"Default Layout" = "Default Layout";
+"Panel Editor" = "Panel Editor";
+"Panel Editor…" = "Panel Editor…";
+"New Panel" = "New Panel";
+"Delete Panel" = "Delete Panel";
+"Panel name" = "Panel name";
+"Name:" = "Name:";
+"Row" = "Row";
+"Label" = "Label";
+"Symbol" = "Symbol";
+"Action" = "Action";
+"Value" = "Value";
+"Insert Text" = "Insert Text";
+"Type + Return" = "Type + Return";
+"Press Shortcut" = "Press Shortcut";
+"Open URL/File" = "Open URL/File";
+"Custom (JSON)" = "Custom (JSON)";
+"(kept as defined in JSON)" = "(kept as defined in JSON)";
+"Saved panels override bundled ones with the same id." = "Saved panels override bundled ones with the same id.";
+"My Panel" = "My Panel";

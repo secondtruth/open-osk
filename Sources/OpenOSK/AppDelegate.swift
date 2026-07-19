@@ -1,3 +1,4 @@
+#if canImport(AppKit)
 import AppKit
 import OpenOSKCore
 
@@ -5,6 +6,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private(set) var keyboardController: KeyboardController!
     private(set) var texterController: TexterController!
     private(set) var settingsController: SettingsController!
+    private(set) var profileEditorController = ProfileEditorController()
+    private(set) var panelEditorController = PanelEditorController()
     private var statusBarController: StatusBarController!
 
     private let injector = KeyInjector()
@@ -41,3 +44,4 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         false
     }
 }
+#endif

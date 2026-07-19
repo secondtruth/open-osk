@@ -1,3 +1,4 @@
+#if canImport(AppKit)
 import AppKit
 import AVFoundation
 import OpenOSKCore
@@ -28,6 +29,15 @@ final class KeyboardController: NSObject {
             }
         }
     }
+
+    /// Editors whose integrated terminal is detected via the focused AX
+    /// element (role + accessibility description containing "terminal").
+    static let editorBundleIDs: Set<String> = [
+        "com.microsoft.VSCode",
+        "com.microsoft.VSCodeInsiders",
+        "com.vscodium",
+        "com.todesktop.230313mzl4w4u92",
+    ]
 
     /// Bundle identifiers treated as terminals for command completion.
     static let terminalBundleIDs: Set<String> = [
@@ -66,6 +76,7 @@ final class KeyboardController: NSObject {
     private var panelWasAutoShown = false
     private var inactivityTimer: Timer?
     private var activeProfile: AppProfile?
+    private var currentFocus: FocusInfo?
 
     init(injector: KeyInjector, resolver: KeycodeResolver) {
         self.injector = injector
@@ -91,10 +102,27 @@ final class KeyboardController: NSObject {
         refreshTerminalMode()
         applyScanningState()
 
-        focusWatcher.onTextFocusChange = { [weak self] hasTextFocus in
-            self?.handleTextFocusChange(hasTextFocus)
+        focusWatcher.onFocusChange = { [weak self] info in
+            guard let self else { return }
+            self.currentFocus = info
+            self.handleTextFocusChange(info.isTextInput)
+            self.refreshTerminalMode()
+            self.updateSuggestions()
         }
         focusWatcher.attach(to: NSWorkspace.shared.frontmostApplication)
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(profilesEdited),
+            name: .openOSKProfilesChanged,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(panelsEdited),
+            name: .openOSKPanelsChanged,
+            object: nil
+        )
 
         NotificationCenter.default.addObserver(
             self,
@@ -339,9 +367,30 @@ final class KeyboardController: NSObject {
         let bundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
         if let forced = activeProfile?.terminalMode {
             terminalMode = forced
+        } else if let bundleID, Self.editorBundleIDs.contains(bundleID) {
+            // Inside supported editors, follow the focused element: the
+            // integrated terminal is a text area labeled "Terminal …".
+            let description = currentFocus?.descriptionText?.lowercased() ?? ""
+            terminalMode = currentFocus?.role == "AXTextArea"
+                && description.contains("terminal")
         } else {
             terminalMode = bundleID.map { Self.terminalBundleIDs.contains($0) } ?? false
         }
+    }
+
+    @objc private func profilesEdited(_ notification: Notification) {
+        profileStore.reload()
+        activeProfile = profileStore.profile(
+            for: NSWorkspace.shared.frontmostApplication?.bundleIdentifier)
+        if applyEffectiveLayout() {
+            rebuildKeyboardView()
+        }
+        refreshTerminalMode()
+        updateSuggestions()
+    }
+
+    @objc private func panelsEdited(_ notification: Notification) {
+        panels.rebuildOpenPanels()
     }
 
     private func handleTextFocusChange(_ hasTextFocus: Bool) {
@@ -628,3 +677,4 @@ final class KeyboardController: NSObject {
         updateSuggestions()
     }
 }
+#endif
