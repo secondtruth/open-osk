@@ -57,6 +57,8 @@ final class SettingsController: NSObject {
         tabs.tabStyle = .toolbar
         makeTabs().forEach(tabs.addTabViewItem)
 
+        // No title of its own: a toolbar-style tab controller titles the
+        // window after the selected tab.
         let window = NSWindow(contentViewController: tabs)
         window.styleMask = [.titled, .closable]
         window.isReleasedWhenClosed = false

@@ -356,6 +356,7 @@ final class KeyboardController: NSObject {
             rebuildKeyboardView()
         case .opacity:
             panels.setOpacity(CGFloat(preferences.opacity))
+            // Fades the keyboard itself to the new opacity.
             noteActivity()
         case .inactivityFadeEnabled, .inactivityFadeDelay:
             noteActivity()
