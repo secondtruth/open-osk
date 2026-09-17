@@ -25,7 +25,10 @@ offers, such as shell command completion for terminal work.
 - **Scanning input (switch access)**: key rows are highlighted sequentially; a
   single switch (Space/Return/F13–F15, consumed globally) first picks the row,
   then the key — for users who cannot operate a pointer at all. Optional
-  two-switch mode: one key advances the scan manually, the other selects
+  two-switch mode: one key advances the scan manually, the other selects.
+  Open custom panels are part of the scan cycle
+- **Works with VoiceOver and Voice Control**: every key and suggestion is an
+  accessibility button with a spoken name ("Delete", "Volume Up")
 - **Custom panels**: floating button collections in the spirit of Apple's Panel
   Editor — Git, Editing, and System (volume/brightness/media) panels ship as
   examples; add your own JSON to `~/Library/Application Support/OpenOSK/Panels/`.
@@ -58,7 +61,8 @@ offers, such as shell command completion for terminal work.
   `~/Library/Application Support/OpenOSK/Layouts/`
 - **Adjustable**: key size, opacity, **themes** (System, High Contrast, Dark,
   Light), optional key click sound, per-feature toggles; fades when idle;
-  remembers its position across launches and displays
+  the keyboard and every panel remember their position across launches and
+  displays
 - Optionally **shows itself automatically** when a text field gains focus
   (Accessibility API observer)
 - Runs as a menu bar app (no Dock icon); UI in English and German
@@ -81,7 +85,8 @@ make bundle    # create build/OpenOSK.app for /Applications
 
 Or directly with SwiftPM: `swift build`, `.build/debug/openosk`.
 
-CLI flags: `--version`, `--help`, `--smoke-test` (start, verify initialization, exit).
+CLI flags: `--version`, `--help`, `--smoke-test` (start, verify initialization, exit),
+`--snapshot DIR` (render the keyboard in every theme and the settings panes to PNGs).
 
 > Tip: install the bundled app (`make bundle`, then copy `build/OpenOSK.app` to
 > `/Applications`) so macOS remembers the Accessibility permission across rebuilds.
