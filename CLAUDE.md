@@ -14,6 +14,8 @@ Swift + AppKit via SwiftPM (no Xcode project). Menu bar accessory app.
 - `make build` / `make run` / `make test` / `make bundle` / `make clean`
 - `.build/debug/openosk --smoke-test` — headless-ish launch check, prints
   `SMOKE_TEST_OK` and exits 0. Use after UI changes.
+- `.build/debug/openosk --snapshot <dir>` — renders every theme and settings
+  pane to PNGs; read them after visual changes.
 - Tests use **Swift Testing** (`import Testing`), not XCTest — XCTest is not
   available with Command Line Tools. `make test` adds the required search-path
   flags automatically.

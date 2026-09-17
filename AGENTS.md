@@ -13,6 +13,11 @@ make bundle    # release build + assemble build/OpenOSK.app via scripts/bundle.s
 make clean
 ```
 
+- `.build/debug/openosk --snapshot <dir>` renders the keyboard in every theme
+  and each settings pane to PNGs without opening a window — look at these after
+  any visual change. It reads the real user preferences, and the System
+  theme's desktop blur cannot be captured off-screen (it falls back to the
+  flat background color).
 - `.build/debug/openosk --smoke-test` starts the UI, prints `SMOKE_TEST_OK`, and
   exits 0 — use this to verify the app still launches without interacting with it.
 - On machines with only Command Line Tools (no Xcode), XCTest is unavailable and
@@ -48,15 +53,27 @@ Two targets plus tests:
   - `AppProfiles.swift` — per-app overrides (layout, forced terminal mode) from
     `app-profiles.json`
   - `Preferences.swift` — UserDefaults-backed; posts
-    `Preferences.didChangeNotification` on every set
+    `Preferences.didChangeNotification` for real changes only, carrying the
+    changed `Preferences.Key` (`Preferences.changedKey(in:)`); also stores
+    panel positions by panel id
 - **`OpenOSK`** (executable, AppKit):
   - `KeyboardPanel.swift` — borderless `.nonactivatingPanel`, `canBecomeKey = false`,
     assistive-tech window level; this is what keeps focus in the target app
-  - `KeyboardView.swift` — manual frame layout (no Auto Layout in the panel);
-    `KeyView` handles press visuals, autorepeat, dwell (hover-to-press with
-    progress pie) and long-press detection; `SuggestionBarView` with dwell
-    buttons; current-text bar at the top. Character/macro keys fire on mouse-up
-    (enables long-press), specials/modifiers on mouse-down (enables autorepeat).
+  - `KeyboardView.swift` — metrics and the container view: manual frame layout
+    (no Auto Layout in the panel), current-text bar, blur backdrop for themes
+    with `usesVibrancy` (click-through, so background drags still move the panel)
+  - `KeyView.swift` — press visuals, autorepeat, dwell (progress pie),
+    long-press detection, accessibility button. Character/macro keys fire on
+    mouse-up (enables long-press), specials/modifiers on mouse-down (enables
+    autorepeat).
+  - `SuggestionBarView.swift` — themed suggestion chips (click, dwell, scan,
+    accessibility); suggestions that do not fit are dropped, best first
+  - `DwellTimer.swift` — hover countdown shared by keys and chips
+  - `KeyPresentation.swift` — spoken names and SF Symbols for special,
+    modifier and media keys
+  - `Theme.swift` — palettes; text on the panel background uses `panelText`,
+    text on key caps `text`/`secondaryText`
+  - `Snapshot.swift` — the `--snapshot` renderer
   - `KeyboardController.swift` — central coordinator: modifier latching
     (off → latched → locked), terminal-mode detection via frontmost app bundle ID,
     suggestion routing (words vs. shell), learning, typing aids, inactivity fade,
@@ -65,11 +82,12 @@ Two targets plus tests:
     dismissed via local+global mouse monitors
   - `FocusWatcher.swift` — AXObserver on the frontmost app's focused UI element;
     drives "show keyboard when editing text"
-  - `ScanController.swift` — scanning (switch access): two-level row→key scan;
+  - `ScanController.swift` — scanning (switch access): two-level row→key scan
+    over the groups its `groupsProvider` returns (visible keyboard + open panels);
     the switch key is consumed via a global CGEvent tap that ignores events
     carrying `KeyInjector.injectionSignature`
   - `PanelsController.swift` — floating custom panels (layout JSON reused);
-    open state persisted in preferences; panels route key presses into
+    open state and positions persisted in preferences; panels route key presses into
     `KeyboardController.handleKey`
   - `ProfileEditorController.swift` / `PanelEditorController.swift` —
     table-based editors writing app-profiles.json and user panel JSON; they
@@ -82,6 +100,14 @@ Two targets plus tests:
     `L("English key")`; keep both languages in sync when adding strings
 
 ## Conventions & gotchas
+
+- On a Synology Drive (File Provider) checkout `swift test` fails at the
+  codesign step ("resource fork, Finder information, or similar detritus not
+  allowed"). Keep `.build` off the mount, e.g. as a symlink to a local
+  directory; `.gitignore` lists `.build` without a trailing slash for that.
+- `KeyboardController.preferencesChanged` switches exhaustively over
+  `Preferences.Key`: a new preference must be given a case there, and only
+  preferences that change the view tree may trigger `rebuildKeyboardView()`.
 
 - Resources are accessed via `Bundle.module` under the `Resources/` subdirectory
   (the package uses `.copy("Resources")`, so subpaths are preserved). The app

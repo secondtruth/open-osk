@@ -64,9 +64,29 @@
       run on Linux; CI runs swift test on both OSes
 - [x] CONTRIBUTING.md
 
-## v0.6 candidates
+## Done (v0.6)
 
-- [ ] Scanning across open panels
+- [x] Scanning across open panels
+- [x] Keys and suggestions exposed to VoiceOver / Voice Control (role, spoken
+      name, press action)
+- [x] Themed suggestion chips with dwell progress; variant popup follows the theme
+- [x] System theme blurs the desktop behind the panel; key corner radii scale
+      with key size; media keys use SF Symbols instead of emoji
+- [x] High Contrast: readable current-text bar, solid latched-modifier color
+- [x] Settings window with toolbar tabs, slider value labels, dependent
+      controls disabled with their switch, confirmation before clearing
+      learned words
+- [x] Custom panels remember their position; rebuilding no longer resets it
+- [x] Preference changes carry the changed key: no full keyboard rebuild per
+      slider tick
+- [x] Word prediction is deterministic for short prefixes (best-first search
+      by rank); "Clear learned words" also clears the in-memory counts
+- [x] `--snapshot DIR` renders themes and settings panes to PNGs
+
+## v0.7 candidates
+
+- [ ] Variant popup for dwell and scanning users (long-press needs a held
+      mouse button today)
 - [ ] Larger frequency-ordered word lists (de/en)
 - [ ] Macro editor for multi-step macros (editor currently maps single-step
       actions; complex macros remain JSON)
