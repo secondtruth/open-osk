@@ -3,7 +3,7 @@ import AppKit
 #endif
 import Foundation
 
-let appVersion = "0.5.0"
+let appVersion = "0.6.0"
 
 let arguments = CommandLine.arguments
 if arguments.contains("--version") {
@@ -21,6 +21,7 @@ if arguments.contains("--help") {
           --version     Print version and exit
           --help        Show this help and exit
           --smoke-test  Start the UI, verify it initializes, then exit
+          --snapshot DIR  Render the keyboard in every theme to PNGs in DIR
 
         OpenOSK runs as a menu bar application. It needs Accessibility access
         (System Settings → Privacy & Security → Accessibility) to send
@@ -31,6 +32,20 @@ if arguments.contains("--help") {
 }
 
 #if canImport(AppKit)
+if let flag = arguments.firstIndex(of: "--snapshot") {
+    guard arguments.indices.contains(flag + 1) else {
+        FileHandle.standardError.write(Data("openosk: --snapshot needs a directory\n".utf8))
+        exit(2)
+    }
+    do {
+        try Snapshot.write(to: URL(fileURLWithPath: arguments[flag + 1]))
+        exit(0)
+    } catch {
+        FileHandle.standardError.write(Data("openosk: \(error.localizedDescription)\n".utf8))
+        exit(1)
+    }
+}
+
 let app = NSApplication.shared
 let delegate = AppDelegate()
 app.delegate = delegate

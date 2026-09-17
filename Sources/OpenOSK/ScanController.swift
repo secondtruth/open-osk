@@ -24,7 +24,8 @@ final class ScanController {
         "f15": 113,
     ]
 
-    private weak var keyboardView: KeyboardView?
+    /// Supplies the groups to scan: the keyboard's rows plus open panels.
+    var groupsProvider: (() -> [[NSView]])?
     private var level: Level = .groups
     private var index = 0
     private var timer: Timer?
@@ -41,8 +42,8 @@ final class ScanController {
 
     private(set) var isActive = false
 
-    func attach(to view: KeyboardView?) {
-        keyboardView = view
+    /// The scanned views were replaced or shown/hidden: start over.
+    func reload() {
         if isActive {
             restartCycle()
         }
@@ -76,7 +77,7 @@ final class ScanController {
     // MARK: - Cycle
 
     private var groups: [[NSView]] {
-        keyboardView?.scanGroups ?? []
+        groupsProvider?() ?? []
     }
 
     private func scheduleTimer() {
@@ -138,8 +139,8 @@ final class ScanController {
     private func activate(_ view: NSView) {
         if let keyView = view as? KeyView {
             keyView.triggerPress()
-        } else if let button = view as? NSButton {
-            button.performClick(nil)
+        } else if let chip = view as? SuggestionChipView {
+            chip.select()
         }
     }
 
@@ -175,8 +176,8 @@ final class ScanController {
     private func setHighlight(_ view: NSView, _ value: Bool) {
         if let keyView = view as? KeyView {
             keyView.isScanHighlighted = value
-        } else if let button = view as? SuggestionButton {
-            button.isScanHighlighted = value
+        } else if let chip = view as? SuggestionChipView {
+            chip.isScanHighlighted = value
         }
     }
 }

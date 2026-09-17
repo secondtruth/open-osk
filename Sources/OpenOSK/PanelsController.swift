@@ -8,14 +8,21 @@ final class PanelsController {
     private unowned let keyboardController: KeyboardController
     private let preferences = Preferences.shared
     private var openPanels: [String: KeyboardPanel] = [:]
-    /// Suppresses the rebuild triggered by our own openPanelIDs persistence.
-    private var suppressNextRebuild = false
+    /// Called when a panel opened, closed or was rebuilt (scanning follows).
+    var onChange: (() -> Void)?
 
     init(keyboardController: KeyboardController) {
         self.keyboardController = keyboardController
     }
 
     var openPanelIDs: Set<String> { Set(openPanels.keys) }
+
+    /// Scan groups of all open panels, in a stable order.
+    var scanGroups: [[NSView]] {
+        openPanels.keys.sorted().flatMap { id in
+            (openPanels[id]?.contentView as? KeyboardView)?.scanGroups ?? []
+        }
+    }
 
     func availablePanels() -> [KeyboardLayout] {
         LayoutStore.allPanels()
@@ -28,6 +35,7 @@ final class PanelsController {
                 open(panel)
             }
         }
+        onChange?()
     }
 
     func toggle(panelID: String) {
@@ -37,6 +45,7 @@ final class PanelsController {
             open(panel)
         }
         persistOpenState()
+        onChange?()
     }
 
     func closeAll() {
@@ -44,6 +53,7 @@ final class PanelsController {
             close(panelID: id)
         }
         persistOpenState()
+        onChange?()
     }
 
     private func open(_ layout: KeyboardLayout) {
@@ -68,7 +78,10 @@ final class PanelsController {
         let window = KeyboardPanel(contentRect: NSRect(origin: .zero, size: size))
         window.contentView = view
         window.setContentSize(size)
-        position(window, stackIndex: openPanels.count)
+        if !window.restoreOrigin(forID: layout.id) {
+            position(window, stackIndex: openPanels.count)
+        }
+        window.trackOrigin(as: layout.id)
         window.alphaValue = CGFloat(preferences.opacity)
         window.orderFrontRegardless()
 
@@ -94,12 +107,12 @@ final class PanelsController {
         ))
     }
 
-    /// Rebuilds open panels (after scale/opacity/dwell changes).
+    func setOpacity(_ opacity: CGFloat) {
+        openPanels.values.forEach { $0.alphaValue = opacity }
+    }
+
+    /// Rebuilds open panels (after scale, theme, dwell or panel edits).
     func rebuildOpenPanels() {
-        if suppressNextRebuild {
-            suppressNextRebuild = false
-            return
-        }
         let ids = Array(openPanels.keys)
         for id in ids {
             close(panelID: id)
@@ -109,10 +122,10 @@ final class PanelsController {
                 open(panel)
             }
         }
+        onChange?()
     }
 
     private func persistOpenState() {
-        suppressNextRebuild = true
         preferences.openPanelIDs = Array(openPanels.keys).sorted()
     }
 }
