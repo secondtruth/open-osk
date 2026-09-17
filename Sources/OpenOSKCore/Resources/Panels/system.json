@@ -13,8 +13,8 @@
       { "media": "previous" },
       { "media": "playPause" },
       { "media": "next" },
-      { "label": "🔒", "macro": { "steps": [ { "shortcut": "ctrl+cmd+q" } ] } },
-      { "label": "📸", "macro": { "steps": [ { "shortcut": "cmd+shift+4" } ] } }
+      { "label": "Lock Screen", "image": "lock.fill", "macro": { "steps": [ { "shortcut": "ctrl+cmd+q" } ] } },
+      { "label": "Screenshot", "image": "camera.viewfinder", "macro": { "steps": [ { "shortcut": "cmd+shift+4" } ] } }
     ]
   ]
 }

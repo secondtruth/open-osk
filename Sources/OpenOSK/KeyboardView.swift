@@ -11,7 +11,9 @@ struct KeyboardMetrics {
     var unit: CGFloat { 46 * scale }
     var keyHeight: CGFloat { 46 * scale }
     var gap: CGFloat { 5 * scale }
-    var padding: CGFloat { 8 * scale }
+    var padding: CGFloat { 10 * scale }
+    var keyCornerRadius: CGFloat { 7 * scale }
+    var panelCornerRadius: CGFloat { 14 * scale }
     var currentTextHeight: CGFloat { showsCurrentText ? 24 * scale : 0 }
     var suggestionHeight: CGFloat { showsSuggestionBar ? 34 * scale : 0 }
     var keyFontSize: CGFloat { 16 * scale }
@@ -30,425 +32,28 @@ struct KeyboardMetrics {
     }
 }
 
-/// Dwell (hover-to-press) configuration shared by key and suggestion views.
-struct DwellConfiguration {
-    var enabled = false
-    var time: TimeInterval = 0.9
+// MARK: - Panel backdrop
+
+// Both backdrop views hand their clicks to the keyboard view underneath, so
+// dragging the panel by its background keeps working.
+
+private final class PassthroughEffectView: NSVisualEffectView {
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
 }
 
-enum ModifierVisualState {
-    case off
-    case latched
-    case locked
-}
+private final class PanelOutlineView: NSView {
+    var color = NSColor.separatorColor
+    var cornerRadius: CGFloat = 14
 
-// MARK: - Key view
-
-final class KeyView: NSView {
-    let key: Key
-    var displayText = ""
-    var secondaryText: String?
-    /// SF Symbol shown instead of the text label.
-    var imageName: String?
-    var modifierState: ModifierVisualState = .off {
-        didSet { needsDisplay = true }
-    }
-    var fontSize: CGFloat = 16
-    var secondaryFontSize: CGFloat = 9
-    var dwell = DwellConfiguration()
-    var theme = Theme.system
-
-    var onPress: ((Key) -> Void)?
-    /// Long-press hook for character keys; returns true if it was handled
-    /// (e.g. a variant popup was shown), which suppresses the normal press.
-    var onLongPress: ((Key, KeyView) -> Bool)?
-    /// Highlight driven by scanning (switch access) mode.
-    var isScanHighlighted = false {
-        didSet { needsDisplay = true }
-    }
-
-    /// Programmatic activation, used by scanning mode.
-    func triggerPress() {
-        isPressedVisual = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { [weak self] in
-            self?.isPressedVisual = false
-        }
-        onPress?(key)
-    }
-
-    private var isPressedVisual = false {
-        didSet { needsDisplay = true }
-    }
-    private var isHovered = false {
-        didSet { needsDisplay = true }
-    }
-    private var repeatTimer: Timer?
-    private var longPressTimer: Timer?
-    private var longPressTriggered = false
-
-    private var dwellTicker: Timer?
-    private var dwellStart: Date?
-    private var dwellProgress: CGFloat = 0 {
-        didSet { needsDisplay = true }
-    }
-    private var dwellCompleted = false
-
-    init(key: Key) {
-        self.key = key
-        super.init(frame: .zero)
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
-
-    override var mouseDownCanMoveWindow: Bool { false }
-
-    private var autorepeats: Bool {
-        switch key.kind {
-        case .special(let special): return special.autorepeats
-        case .media(let media): return media.autorepeats
-        default: return false
-        }
-    }
-
-    /// Character and macro keys fire on release (enables long-press variants
-    /// and slide-away cancel-free behavior); specials/modifiers fire on press
-    /// so autorepeat and latching feel immediate.
-    private var firesOnMouseUp: Bool {
-        switch key.kind {
-        case .character, .macro: return true
-        default: return false
-        }
-    }
-
-    private var supportsLongPress: Bool {
-        guard case .character = key.kind, let base = key.base else { return false }
-        return !CharacterVariants.variants(for: base, shifted: false).isEmpty
-            || !CharacterVariants.variants(for: base, shifted: true).isEmpty
-    }
-
-    override func updateTrackingAreas() {
-        super.updateTrackingAreas()
-        trackingAreas.forEach(removeTrackingArea)
-        addTrackingArea(NSTrackingArea(
-            rect: bounds,
-            options: [.mouseEnteredAndExited, .activeAlways],
-            owner: self
-        ))
-    }
-
-    // MARK: Mouse handling
-
-    override func mouseEntered(with event: NSEvent) {
-        isHovered = true
-        if dwell.enabled, !dwellCompleted {
-            startDwell()
-        }
-    }
-
-    override func mouseExited(with event: NSEvent) {
-        isHovered = false
-        cancelDwell()
-        dwellCompleted = false
-    }
-
-    override func mouseDown(with event: NSEvent) {
-        cancelDwell()
-        isPressedVisual = true
-        longPressTriggered = false
-
-        if firesOnMouseUp {
-            if supportsLongPress {
-                let timer = Timer(timeInterval: 0.45, repeats: false) { [weak self] _ in
-                    guard let self else { return }
-                    self.longPressTriggered = self.onLongPress?(self.key, self) ?? false
-                    if self.longPressTriggered {
-                        self.isPressedVisual = false
-                    }
-                }
-                RunLoop.current.add(timer, forMode: .common)
-                longPressTimer = timer
-            }
-        } else {
-            onPress?(key)
-            if autorepeats {
-                let timer = Timer(timeInterval: 0.35, repeats: false) { [weak self] _ in
-                    self?.startRepeating()
-                }
-                RunLoop.current.add(timer, forMode: .common)
-                repeatTimer = timer
-            }
-        }
-    }
-
-    override func mouseUp(with event: NSEvent) {
-        isPressedVisual = false
-        stopRepeating()
-        longPressTimer?.invalidate()
-        longPressTimer = nil
-
-        if firesOnMouseUp, !longPressTriggered {
-            onPress?(key)
-        }
-        longPressTriggered = false
-    }
-
-    // MARK: Autorepeat
-
-    private func startRepeating() {
-        stopRepeating()
-        let timer = Timer(timeInterval: 0.06, repeats: true) { [weak self] _ in
-            guard let self else { return }
-            self.onPress?(self.key)
-        }
-        RunLoop.current.add(timer, forMode: .common)
-        repeatTimer = timer
-    }
-
-    private func stopRepeating() {
-        repeatTimer?.invalidate()
-        repeatTimer = nil
-    }
-
-    // MARK: Dwell
-
-    private func startDwell() {
-        cancelDwell()
-        dwellStart = Date()
-        let ticker = Timer(timeInterval: 1.0 / 30.0, repeats: true) { [weak self] _ in
-            guard let self, let start = self.dwellStart else { return }
-            let progress = CGFloat(Date().timeIntervalSince(start) / self.dwell.time)
-            if progress >= 1 {
-                self.completeDwell()
-            } else {
-                self.dwellProgress = progress
-            }
-        }
-        RunLoop.current.add(ticker, forMode: .common)
-        dwellTicker = ticker
-    }
-
-    private func completeDwell() {
-        cancelDwell()
-        dwellCompleted = true
-        isPressedVisual = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { [weak self] in
-            self?.isPressedVisual = false
-        }
-        onPress?(key)
-    }
-
-    private func cancelDwell() {
-        dwellTicker?.invalidate()
-        dwellTicker = nil
-        dwellStart = nil
-        dwellProgress = 0
-    }
-
-    // MARK: Drawing
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
 
     override func draw(_ dirtyRect: NSRect) {
-        let rect = bounds.insetBy(dx: 0.5, dy: 0.5)
-        let path = NSBezierPath(roundedRect: rect, xRadius: 7, yRadius: 7)
-
-        let isCharacter: Bool
-        if case .character = key.kind { isCharacter = true } else { isCharacter = false }
-
-        var fill: NSColor
-        if isPressedVisual {
-            fill = theme.pressed
-        } else {
-            switch modifierState {
-            case .off:
-                fill = isCharacter ? theme.keyFill : theme.specialFill
-                if isHovered {
-                    fill = fill.blended(withFraction: 0.15, of: theme.pressed) ?? fill
-                }
-            case .latched:
-                fill = theme.pressed.withAlphaComponent(0.35)
-            case .locked:
-                fill = theme.pressed.withAlphaComponent(0.7)
-            }
-        }
-        fill.setFill()
-        path.fill()
-
-        NSColor.separatorColor.setStroke()
+        let path = NSBezierPath(
+            roundedRect: bounds.insetBy(dx: 0.5, dy: 0.5),
+            xRadius: cornerRadius, yRadius: cornerRadius)
+        color.setStroke()
         path.lineWidth = 1
         path.stroke()
-
-        if modifierState == .latched || modifierState == .locked {
-            let border = NSBezierPath(roundedRect: rect.insetBy(dx: 1, dy: 1), xRadius: 6, yRadius: 6)
-            theme.pressed.setStroke()
-            border.lineWidth = 2
-            border.stroke()
-        }
-
-        if isScanHighlighted {
-            let border = NSBezierPath(
-                roundedRect: rect.insetBy(dx: 1.5, dy: 1.5), xRadius: 6, yRadius: 6)
-            NSColor.systemOrange.setStroke()
-            border.lineWidth = 3
-            border.stroke()
-        }
-
-        let textColor: NSColor = isPressedVisual ? theme.pressedText : theme.text
-
-        if let imageName,
-           let symbol = NSImage(systemSymbolName: imageName, accessibilityDescription: displayText) {
-            let configured = symbol.withSymbolConfiguration(
-                NSImage.SymbolConfiguration(pointSize: fontSize * 1.15, weight: .medium)
-            ) ?? symbol
-            let tinted = NSImage(size: configured.size, flipped: false) { rect in
-                configured.draw(in: rect)
-                textColor.set()
-                rect.fill(using: .sourceAtop)
-                return true
-            }
-            let size = tinted.size
-            tinted.draw(in: NSRect(
-                x: bounds.midX - size.width / 2,
-                y: bounds.midY - size.height / 2,
-                width: size.width,
-                height: size.height
-            ))
-        } else if !displayText.isEmpty {
-            let attributes: [NSAttributedString.Key: Any] = [
-                .font: NSFont.systemFont(ofSize: fontSize, weight: isCharacter ? .regular : .medium),
-                .foregroundColor: textColor,
-            ]
-            let size = displayText.size(withAttributes: attributes)
-            let origin = NSPoint(
-                x: bounds.midX - size.width / 2,
-                y: bounds.midY - size.height / 2
-            )
-            displayText.draw(at: origin, withAttributes: attributes)
-        }
-
-        if let secondaryText, !secondaryText.isEmpty {
-            let attributes: [NSAttributedString.Key: Any] = [
-                .font: NSFont.systemFont(ofSize: secondaryFontSize),
-                .foregroundColor: isPressedVisual
-                    ? theme.pressedText.withAlphaComponent(0.8)
-                    : theme.secondaryText,
-            ]
-            let size = secondaryText.size(withAttributes: attributes)
-            let origin = NSPoint(
-                x: bounds.maxX - size.width - 5,
-                y: bounds.maxY - size.height - 3
-            )
-            secondaryText.draw(at: origin, withAttributes: attributes)
-        }
-
-        if dwellProgress > 0 {
-            drawDwellProgress()
-        }
-    }
-
-    /// Pie-style dwell progress indicator in the key's center.
-    private func drawDwellProgress() {
-        let radius = min(bounds.width, bounds.height) / 4.5
-        let center = NSPoint(x: bounds.midX, y: bounds.midY)
-        let pie = NSBezierPath()
-        pie.move(to: center)
-        pie.appendArc(
-            withCenter: center,
-            radius: radius,
-            startAngle: 90,
-            endAngle: 90 - 360 * dwellProgress,
-            clockwise: true
-        )
-        pie.close()
-        theme.pressed.withAlphaComponent(0.55).setFill()
-        pie.fill()
-    }
-}
-
-// MARK: - Suggestion bar
-
-/// Button that supports dwell selection.
-final class SuggestionButton: NSButton {
-    var dwell = DwellConfiguration()
-    private var dwellTimer: Timer?
-
-    var isScanHighlighted = false {
-        didSet {
-            wantsLayer = true
-            layer?.borderWidth = isScanHighlighted ? 3 : 0
-            layer?.borderColor = NSColor.systemOrange.cgColor
-            layer?.cornerRadius = 6
-        }
-    }
-
-    override var mouseDownCanMoveWindow: Bool { false }
-
-    override func updateTrackingAreas() {
-        super.updateTrackingAreas()
-        trackingAreas.forEach(removeTrackingArea)
-        addTrackingArea(NSTrackingArea(
-            rect: bounds,
-            options: [.mouseEnteredAndExited, .activeAlways],
-            owner: self
-        ))
-    }
-
-    override func mouseEntered(with event: NSEvent) {
-        guard dwell.enabled else { return }
-        let timer = Timer(timeInterval: dwell.time, repeats: false) { [weak self] _ in
-            self?.performClick(nil)
-        }
-        RunLoop.current.add(timer, forMode: .common)
-        dwellTimer = timer
-    }
-
-    override func mouseExited(with event: NSEvent) {
-        dwellTimer?.invalidate()
-        dwellTimer = nil
-    }
-}
-
-final class SuggestionBarView: NSView {
-    var onSelect: ((String) -> Void)?
-    var fontSize: CGFloat = 13
-    var dwell = DwellConfiguration()
-
-    private var buttons: [SuggestionButton] = []
-
-    var scanItems: [SuggestionButton] { buttons }
-
-    override var mouseDownCanMoveWindow: Bool { true }
-
-    func setSuggestions(_ suggestions: [String]) {
-        buttons.forEach { $0.removeFromSuperview() }
-        buttons = suggestions.map { suggestion in
-            let button = SuggestionButton(title: suggestion, target: self, action: #selector(selected(_:)))
-            button.bezelStyle = .rounded
-            button.controlSize = .large
-            button.font = .systemFont(ofSize: fontSize)
-            button.dwell = dwell
-            addSubview(button)
-            return button
-        }
-        needsLayout = true
-        layoutButtons()
-    }
-
-    @objc private func selected(_ sender: NSButton) {
-        onSelect?(sender.title)
-    }
-
-    override func layout() {
-        super.layout()
-        layoutButtons()
-    }
-
-    private func layoutButtons() {
-        var x: CGFloat = 0
-        for button in buttons {
-            let width = button.intrinsicContentSize.width + 8
-            button.frame = NSRect(x: x, y: 0, width: width, height: bounds.height)
-            x += width + 6
-        }
     }
 }
 
@@ -479,6 +84,20 @@ final class KeyboardView: NSView {
         return groups
     }
 
+    /// Rounded-rect mask for the blur view; stretches from its cap insets.
+    private static func maskImage(cornerRadius: CGFloat) -> NSImage {
+        let edge = cornerRadius * 2 + 1
+        let image = NSImage(size: NSSize(width: edge, height: edge), flipped: false) { rect in
+            NSColor.black.setFill()
+            NSBezierPath(roundedRect: rect, xRadius: cornerRadius, yRadius: cornerRadius).fill()
+            return true
+        }
+        image.capInsets = NSEdgeInsets(
+            top: cornerRadius, left: cornerRadius, bottom: cornerRadius, right: cornerRadius)
+        image.resizingMode = .stretch
+        return image
+    }
+
     let theme: Theme
 
     init(
@@ -493,10 +112,29 @@ final class KeyboardView: NSView {
         super.init(frame: NSRect(origin: .zero, size: metrics.size(for: layout)))
         wantsLayer = true
 
+        if theme.usesVibrancy {
+            let blur = PassthroughEffectView(frame: bounds)
+            blur.autoresizingMask = [.width, .height]
+            blur.material = .popover
+            blur.blendingMode = .behindWindow
+            // The panel never becomes key; without this the blur would
+            // render in its washed-out inactive state.
+            blur.state = .active
+            blur.maskImage = Self.maskImage(cornerRadius: metrics.panelCornerRadius)
+            addSubview(blur)
+
+            // The blur covers whatever this view draws itself, outline included.
+            let outline = PanelOutlineView(frame: bounds)
+            outline.autoresizingMask = [.width, .height]
+            outline.color = theme.border
+            outline.cornerRadius = metrics.panelCornerRadius
+            addSubview(outline)
+        }
+
         if metrics.showsCurrentText {
             currentTextLabel.font = .monospacedSystemFont(
                 ofSize: metrics.currentTextFontSize, weight: .regular)
-            currentTextLabel.textColor = theme.secondaryText
+            currentTextLabel.textColor = theme.panelText
             currentTextLabel.lineBreakMode = .byTruncatingHead
             currentTextLabel.alignment = .left
             addSubview(currentTextLabel)
@@ -504,7 +142,9 @@ final class KeyboardView: NSView {
 
         if metrics.showsSuggestionBar {
             suggestionBar.fontSize = metrics.suggestionFontSize
+            suggestionBar.spacing = metrics.gap
             suggestionBar.dwell = dwell
+            suggestionBar.theme = theme
             addSubview(suggestionBar)
         }
 
@@ -514,6 +154,7 @@ final class KeyboardView: NSView {
                 let view = KeyView(key: key)
                 view.fontSize = metrics.keyFontSize
                 view.secondaryFontSize = metrics.secondaryFontSize
+                view.cornerRadius = metrics.keyCornerRadius
                 view.dwell = dwell
                 view.theme = theme
                 view.onPress = { [weak self] key in self?.onKeyPress?(key) }
@@ -552,10 +193,13 @@ final class KeyboardView: NSView {
     override func mouseExited(with event: NSEvent) { onHoverChange?(false) }
 
     override func draw(_ dirtyRect: NSRect) {
-        let path = NSBezierPath(roundedRect: bounds, xRadius: 14, yRadius: 14)
+        guard !theme.usesVibrancy else { return }
+        let radius = metrics.panelCornerRadius
+        let path = NSBezierPath(
+            roundedRect: bounds.insetBy(dx: 0.5, dy: 0.5), xRadius: radius, yRadius: radius)
         theme.background.setFill()
         path.fill()
-        NSColor.separatorColor.setStroke()
+        theme.border.setStroke()
         path.lineWidth = 1
         path.stroke()
     }
@@ -575,6 +219,7 @@ final class KeyboardView: NSView {
             switch key.kind {
             case .character:
                 view.displayText = key.label ?? key.output(shifted: shifted, alted: alted) ?? ""
+                view.spokenLabel = view.displayText
                 if !shifted, !alted, let shiftOutput = key.shift,
                    shiftOutput != key.base?.uppercased() {
                     view.secondaryText = shiftOutput
@@ -584,24 +229,33 @@ final class KeyboardView: NSView {
                 view.modifierState = .off
             case .special(let special):
                 view.displayText = key.label ?? special.symbol
+                view.spokenLabel = special.spokenName
                 view.secondaryText = nil
                 view.modifierState = .off
             case .modifier(let modifier):
                 view.displayText = key.label ?? modifier.symbol
+                view.spokenLabel = modifier.spokenName
                 view.secondaryText = nil
                 view.modifierState = modifierStates[modifier] ?? .off
             case .macro:
                 view.displayText = key.label ?? key.text.map { String($0.prefix(6)) } ?? "◆"
+                view.spokenLabel = key.label ?? key.text ?? L("Macro")
                 view.secondaryText = nil
                 view.modifierState = .off
             case .media(let media):
                 view.displayText = key.label ?? media.symbol
+                view.spokenLabel = media.spokenName
                 view.secondaryText = nil
                 view.modifierState = .off
             case nil:
                 break
             }
-            view.imageName = key.image
+            if case .media(let media) = key.kind, key.label == nil {
+                // The text fallbacks are emoji, which ignore the theme.
+                view.imageName = key.image ?? media.symbolName
+            } else {
+                view.imageName = key.image
+            }
             view.needsDisplay = true
         }
     }

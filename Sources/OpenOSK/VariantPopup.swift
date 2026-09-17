@@ -15,6 +15,7 @@ final class VariantPopup {
         variants: [String],
         relativeTo keyView: KeyView,
         metrics: KeyboardMetrics,
+        theme: Theme,
         onSelect: @escaping (String) -> Void
     ) {
         dismiss()
@@ -29,12 +30,17 @@ final class VariantPopup {
 
         let panel = KeyboardPanel(contentRect: NSRect(origin: .zero, size: size))
         let content = PopupBackgroundView(frame: NSRect(origin: .zero, size: size))
+        content.theme = theme
+        content.cornerRadius = metrics.keyCornerRadius + pad
 
         var x = pad
         for variant in variants {
             let view = KeyView(key: Key(base: variant))
             view.displayText = variant
+            view.spokenLabel = variant
             view.fontSize = metrics.keyFontSize
+            view.cornerRadius = metrics.keyCornerRadius
+            view.theme = theme
             view.onPress = { [weak self] _ in
                 onSelect(variant)
                 self?.dismiss()
@@ -97,11 +103,15 @@ final class VariantPopup {
 }
 
 private final class PopupBackgroundView: NSView {
+    var theme = Theme.system
+    var cornerRadius: CGFloat = 10
+
     override func draw(_ dirtyRect: NSRect) {
-        let path = NSBezierPath(roundedRect: bounds, xRadius: 10, yRadius: 10)
-        NSColor.windowBackgroundColor.setFill()
+        let path = NSBezierPath(
+            roundedRect: bounds.insetBy(dx: 0.5, dy: 0.5), xRadius: cornerRadius, yRadius: cornerRadius)
+        theme.background.setFill()
         path.fill()
-        NSColor.separatorColor.setStroke()
+        theme.border.setStroke()
         path.lineWidth = 1
         path.stroke()
     }

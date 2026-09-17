@@ -2,16 +2,29 @@
 import AppKit
 import OpenOSKCore
 
+/// Settings window: toolbar tabs (General, Typing, Access, Panels), each a
+/// grid of controls bound to `Preferences` by key path.
 final class SettingsController: NSObject {
     private let preferences = Preferences.shared
-    private unowned let keyboardController: KeyboardController
+    private let onClearLearnedWords: () -> Void
 
     private var window: NSWindow?
     private var layoutPopup: NSPopUpButton!
     private var layouts: [KeyboardLayout] = []
+    /// Controls that only make sense while their switch is on.
+    private var dependents: [(control: NSControl, isEnabled: () -> Bool)] = []
 
-    init(keyboardController: KeyboardController) {
-        self.keyboardController = keyboardController
+    private static let paneWidth: CGFloat = 460
+    private static let scanKeys: [(id: String, title: String)] = [
+        ("space", L("Space")),
+        ("return", L("Return")),
+        ("f13", "F13"),
+        ("f14", "F14"),
+        ("f15", "F15"),
+    ]
+
+    init(onClearLearnedWords: @escaping () -> Void) {
+        self.onClearLearnedWords = onClearLearnedWords
         super.init()
     }
 
@@ -24,165 +37,198 @@ final class SettingsController: NSObject {
         window?.makeKeyAndOrderFront(nil)
     }
 
+    // MARK: - Window
+
+    /// The settings panes in tab order. Also rendered by `--snapshot`.
+    func makeTabs() -> [NSTabViewItem] {
+        let tabs = [
+            tab(L("General"), symbol: "gearshape", rows: generalRows()),
+            tab(L("Typing"), symbol: "character.cursor.ibeam", rows: typingRows()),
+            tab(L("Access"), symbol: "accessibility", rows: accessRows()),
+            tab(L("Panels"), symbol: "rectangle.3.group", rows: panelRows()),
+        ]
+        reloadLayouts()
+        refreshDependents()
+        return tabs
+    }
+
     private func buildWindow() {
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 480, height: 480),
-            styleMask: [.titled, .closable],
-            backing: .buffered,
-            defer: false
-        )
-        window.title = L("OpenOSK Settings")
+        let tabs = SettingsTabViewController()
+        tabs.tabStyle = .toolbar
+        makeTabs().forEach(tabs.addTabViewItem)
+
+        let window = NSWindow(contentViewController: tabs)
+        window.styleMask = [.titled, .closable]
         window.isReleasedWhenClosed = false
         window.center()
+        self.window = window
+    }
 
-        layoutPopup = NSPopUpButton()
-        layoutPopup.target = self
-        layoutPopup.action = #selector(layoutSelected)
-
-        let scaleSlider = NSSlider(
-            value: preferences.scale, minValue: 0.7, maxValue: 1.6,
-            target: self, action: #selector(scaleChanged)
-        )
-        let opacitySlider = NSSlider(
-            value: preferences.opacity, minValue: 0.35, maxValue: 1.0,
-            target: self, action: #selector(opacityChanged)
-        )
-        let dwellTimeSlider = NSSlider(
-            value: preferences.dwellTime, minValue: 0.3, maxValue: 2.5,
-            target: self, action: #selector(dwellTimeChanged)
-        )
-
-        let themePopup = NSPopUpButton()
-        themePopup.addItems(withTitles: Theme.all.map(\.name))
-        if let index = Theme.all.firstIndex(where: { $0.id == preferences.themeID }) {
-            themePopup.selectItem(at: index)
-        }
-        themePopup.target = self
-        themePopup.action = #selector(themeSelected)
-
-        let advanceKeyPopup = NSPopUpButton()
-        advanceKeyPopup.addItems(withTitles: [L("None")] + Self.switchKeys.map(\.title))
-        let advanceOptions = ["none"] + Self.switchKeys.map(\.id)
-        if let index = advanceOptions.firstIndex(of: preferences.scanAdvanceKey) {
-            advanceKeyPopup.selectItem(at: index)
-        }
-        advanceKeyPopup.target = self
-        advanceKeyPopup.action = #selector(advanceKeySelected)
-
-        let profilesButton = NSButton(
-            title: L("App Profiles…"), target: self, action: #selector(editProfiles))
-        let panelsButton = NSButton(
-            title: L("Panel Editor…"), target: self, action: #selector(editPanels))
-        let panelsFolderButton = NSButton(
-            title: L("Open Panels Folder…"), target: self, action: #selector(openPanelsFolder))
-
-        let scanIntervalSlider = NSSlider(
-            value: preferences.scanInterval, minValue: 0.5, maxValue: 3.0,
-            target: self, action: #selector(scanIntervalChanged)
-        )
-        let switchKeyPopup = NSPopUpButton()
-        switchKeyPopup.addItems(withTitles: Self.switchKeys.map { $0.title })
-        if let index = Self.switchKeys.firstIndex(where: { $0.id == preferences.scanSwitchKey }) {
-            switchKeyPopup.selectItem(at: index)
-        }
-        switchKeyPopup.target = self
-        switchKeyPopup.action = #selector(switchKeySelected)
-
-        let clearButton = NSButton(
-            title: L("Clear Learned Words"),
-            target: self,
-            action: #selector(clearLearned)
-        )
-
-        let grid = NSGridView(views: [
-            [label(L("Layout:")), layoutPopup],
-            [label(L("Theme:")), themePopup],
-            [label(L("Key size:")), scaleSlider],
-            [label(L("Opacity:")), opacitySlider],
-            [NSGridCell.emptyContentView, checkbox(
-                L("Show word predictions"),
-                selector: #selector(predictionsToggled),
-                state: preferences.predictionsEnabled)],
-            [NSGridCell.emptyContentView, checkbox(
-                L("Learn words from my typing"),
-                selector: #selector(learningToggled),
-                state: preferences.learningEnabled)],
-            [NSGridCell.emptyContentView, checkbox(
-                L("Complete shell commands in terminals"),
-                selector: #selector(terminalToggled),
-                state: preferences.terminalCompletionsEnabled)],
-            [NSGridCell.emptyContentView, checkbox(
-                L("Auto-capitalize after sentence end"),
-                selector: #selector(autoCapToggled),
-                state: preferences.autoCapitalization)],
-            [NSGridCell.emptyContentView, checkbox(
-                L("Double-space inserts a period"),
-                selector: #selector(autoSpacingToggled),
-                state: preferences.autoSpacing)],
-            [NSGridCell.emptyContentView, checkbox(
-                L("Show current text on the keyboard"),
-                selector: #selector(currentTextToggled),
-                state: preferences.showCurrentText)],
-            [NSGridCell.emptyContentView, checkbox(
-                L("Use system dictionary for predictions"),
-                selector: #selector(systemDictionaryToggled),
-                state: preferences.systemDictionaryEnabled)],
-            [NSGridCell.emptyContentView, checkbox(
-                L("Key click sound"),
-                selector: #selector(keyClickToggled),
-                state: preferences.keyClickSound)],
-            [NSGridCell.emptyContentView, checkbox(
-                L("Fade keyboard when inactive"),
-                selector: #selector(fadeToggled),
-                state: preferences.inactivityFadeEnabled)],
-            [NSGridCell.emptyContentView, checkbox(
-                L("Show keyboard when editing text"),
-                selector: #selector(autoShowToggled),
-                state: preferences.autoShowOnTextFocus)],
-            [NSGridCell.emptyContentView, checkbox(
-                L("Dwell input (hover to press)"),
-                selector: #selector(dwellToggled),
-                state: preferences.dwellEnabled)],
-            [label(L("Dwell time:")), dwellTimeSlider],
-            [NSGridCell.emptyContentView, checkbox(
-                L("Scanning (switch access)"),
-                selector: #selector(scanningToggled),
-                state: preferences.scanningEnabled)],
-            [label(L("Scan interval:")), scanIntervalSlider],
-            [label(L("Switch key:")), switchKeyPopup],
-            [label(L("Advance key:")), advanceKeyPopup],
-            [NSGridCell.emptyContentView, profilesButton],
-            [NSGridCell.emptyContentView, panelsButton],
-            [NSGridCell.emptyContentView, panelsFolderButton],
-            [NSGridCell.emptyContentView, clearButton],
-        ])
+    private func tab(_ title: String, symbol: String, rows: [[NSView]]) -> NSTabViewItem {
+        let grid = NSGridView(views: rows)
         grid.translatesAutoresizingMaskIntoConstraints = false
         grid.rowSpacing = 10
         grid.columnSpacing = 12
         grid.column(at: 0).xPlacement = .trailing
+        grid.rowAlignment = .firstBaseline
 
-        let content = NSView()
-        content.addSubview(grid)
+        let pane = NSView()
+        pane.addSubview(grid)
         NSLayoutConstraint.activate([
-            grid.topAnchor.constraint(equalTo: content.topAnchor, constant: 20),
-            grid.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 20),
-            grid.trailingAnchor.constraint(lessThanOrEqualTo: content.trailingAnchor, constant: -20),
-            grid.bottomAnchor.constraint(lessThanOrEqualTo: content.bottomAnchor, constant: -20),
-            scaleSlider.widthAnchor.constraint(greaterThanOrEqualToConstant: 240),
+            pane.widthAnchor.constraint(equalToConstant: Self.paneWidth),
+            grid.topAnchor.constraint(equalTo: pane.topAnchor, constant: 20),
+            grid.centerXAnchor.constraint(equalTo: pane.centerXAnchor),
+            grid.leadingAnchor.constraint(greaterThanOrEqualTo: pane.leadingAnchor, constant: 20),
+            grid.bottomAnchor.constraint(equalTo: pane.bottomAnchor, constant: -20),
         ])
-        window.contentView = content
 
-        self.window = window
+        let controller = NSViewController()
+        controller.view = pane
+        controller.title = title
+        let item = NSTabViewItem(viewController: controller)
+        item.label = title
+        item.image = NSImage(systemSymbolName: symbol, accessibilityDescription: title)
+        return item
+    }
+
+    // MARK: - Panes
+
+    private func generalRows() -> [[NSView]] {
+        layoutPopup = NSPopUpButton()
+        layoutPopup.target = self
+        layoutPopup.action = #selector(layoutSelected)
+
+        let themePopup = popup(
+            titles: Theme.all.map(\.name), ids: Theme.all.map(\.id), keyPath: \.themeID)
+
+        // Every distinct key size rebuilds the keyboard, so it applies on release.
+        let scale = slider(\.scale, range: 0.7...1.6, format: Self.percent, continuous: false)
+        let opacity = slider(\.opacity, range: 0.35...1.0, format: Self.percent)
+
+        return [
+            [label(L("Layout:")), layoutPopup],
+            [label(L("Theme:")), themePopup],
+            [label(L("Key size:")), scale],
+            [label(L("Opacity:")), opacity],
+            [spacer(), checkbox(L("Show current text on the keyboard"), \.showCurrentText)],
+            [spacer(), checkbox(L("Fade keyboard when inactive"), \.inactivityFadeEnabled)],
+            [spacer(), checkbox(L("Show keyboard when editing text"), \.autoShowOnTextFocus)],
+            [spacer(), checkbox(L("Key click sound"), \.keyClickSound)],
+        ]
+    }
+
+    private func typingRows() -> [[NSView]] {
+        let clearButton = NSButton(
+            title: L("Clear Learned Words"), target: self, action: #selector(clearLearned))
+        return [
+            [label(L("Predictions:")), checkbox(L("Show word predictions"), \.predictionsEnabled)],
+            [spacer(), checkbox(L("Learn words from my typing"), \.learningEnabled)],
+            [spacer(), checkbox(L("Use system dictionary for predictions"), \.systemDictionaryEnabled)],
+            [spacer(), checkbox(L("Complete shell commands in terminals"), \.terminalCompletionsEnabled)],
+            [spacer(), clearButton],
+            [label(L("Typing aids:")), checkbox(L("Auto-capitalize after sentence end"), \.autoCapitalization)],
+            [spacer(), checkbox(L("Double-space inserts a period"), \.autoSpacing)],
+        ]
+    }
+
+    private func accessRows() -> [[NSView]] {
+        let dwellTime = slider(\.dwellTime, range: 0.3...2.5, format: Self.seconds)
+        let scanInterval = slider(\.scanInterval, range: 0.5...3.0, format: Self.seconds)
+        let switchKey = popup(
+            titles: Self.scanKeys.map(\.title), ids: Self.scanKeys.map(\.id),
+            keyPath: \.scanSwitchKey)
+        let advanceKey = popup(
+            titles: [L("None")] + Self.scanKeys.map(\.title),
+            ids: ["none"] + Self.scanKeys.map(\.id),
+            keyPath: \.scanAdvanceKey)
+
+        let preferences = self.preferences
+        dependents.append((dwellTime.slider, { preferences.dwellEnabled }))
+        for control in [scanInterval.slider, switchKey, advanceKey] as [NSControl] {
+            dependents.append((control, { preferences.scanningEnabled }))
+        }
+
+        return [
+            [label(L("Dwell:")), checkbox(L("Dwell input (hover to press)"), \.dwellEnabled)],
+            [label(L("Dwell time:")), dwellTime],
+            [label(L("Scanning:")), checkbox(L("Scanning (switch access)"), \.scanningEnabled)],
+            [label(L("Scan interval:")), scanInterval],
+            [label(L("Switch key:")), switchKey],
+            [label(L("Advance key:")), advanceKey],
+        ]
+    }
+
+    private func panelRows() -> [[NSView]] {
+        [
+            [label(L("Panels:")), NSButton(
+                title: L("Panel Editor…"), target: self, action: #selector(editPanels))],
+            [spacer(), NSButton(
+                title: L("Open Panels Folder…"), target: self, action: #selector(openPanelsFolder))],
+            [label(L("Per app:")), NSButton(
+                title: L("App Profiles…"), target: self, action: #selector(editProfiles))],
+        ]
+    }
+
+    // MARK: - Control factories
+
+    private static func percent(_ value: Double) -> String {
+        "\(Int((value * 100).rounded())) %"
+    }
+
+    private static func seconds(_ value: Double) -> String {
+        String(format: "%.1f s", locale: .current, value)
     }
 
     private func label(_ text: String) -> NSTextField {
         NSTextField(labelWithString: text)
     }
 
-    private func checkbox(_ title: String, selector: Selector, state: Bool) -> NSButton {
-        let button = NSButton(checkboxWithTitle: title, target: self, action: selector)
-        button.state = state ? .on : .off
+    private func spacer() -> NSView {
+        NSGridCell.emptyContentView
+    }
+
+    private func checkbox(
+        _ title: String, _ keyPath: ReferenceWritableKeyPath<Preferences, Bool>
+    ) -> NSButton {
+        let button = PreferenceCheckbox(checkboxWithTitle: title, target: self, action: #selector(checkboxToggled))
+        button.keyPath = keyPath
+        button.state = preferences[keyPath: keyPath] ? .on : .off
         return button
+    }
+
+    private func slider(
+        _ keyPath: ReferenceWritableKeyPath<Preferences, Double>,
+        range: ClosedRange<Double>,
+        format: @escaping (Double) -> String,
+        continuous: Bool = true
+    ) -> PreferenceSliderRow {
+        let row = PreferenceSliderRow(
+            value: preferences[keyPath: keyPath], range: range, format: format)
+        row.appliesOnRelease = !continuous
+        row.onChange = { [preferences] value in preferences[keyPath: keyPath] = value }
+        return row
+    }
+
+    private func popup(
+        titles: [String], ids: [String],
+        keyPath: ReferenceWritableKeyPath<Preferences, String>
+    ) -> NSPopUpButton {
+        let popup = PreferencePopup()
+        popup.addItems(withTitles: titles)
+        popup.ids = ids
+        popup.keyPath = keyPath
+        if let index = ids.firstIndex(of: preferences[keyPath: keyPath]) {
+            popup.selectItem(at: index)
+        }
+        popup.target = self
+        popup.action = #selector(popupSelected)
+        return popup
+    }
+
+    private func refreshDependents() {
+        for dependent in dependents {
+            dependent.control.isEnabled = dependent.isEnabled()
+        }
     }
 
     private func reloadLayouts() {
@@ -196,105 +242,37 @@ final class SettingsController: NSObject {
 
     // MARK: - Actions
 
+    @objc private func checkboxToggled(_ sender: PreferenceCheckbox) {
+        guard let keyPath = sender.keyPath else { return }
+        preferences[keyPath: keyPath] = sender.state == .on
+        refreshDependents()
+    }
+
+    @objc private func popupSelected(_ sender: PreferencePopup) {
+        let index = sender.indexOfSelectedItem
+        guard let keyPath = sender.keyPath, sender.ids.indices.contains(index) else { return }
+        preferences[keyPath: keyPath] = sender.ids[index]
+    }
+
     @objc private func layoutSelected(_ sender: NSPopUpButton) {
         let index = sender.indexOfSelectedItem
         guard layouts.indices.contains(index) else { return }
         preferences.layoutID = layouts[index].id
     }
 
-    @objc private func scaleChanged(_ sender: NSSlider) {
-        preferences.scale = sender.doubleValue
-    }
-
-    @objc private func opacityChanged(_ sender: NSSlider) {
-        preferences.opacity = sender.doubleValue
-    }
-
-    @objc private func dwellTimeChanged(_ sender: NSSlider) {
-        preferences.dwellTime = sender.doubleValue
-    }
-
-    @objc private func predictionsToggled(_ sender: NSButton) {
-        preferences.predictionsEnabled = sender.state == .on
-    }
-
-    @objc private func learningToggled(_ sender: NSButton) {
-        preferences.learningEnabled = sender.state == .on
-    }
-
-    @objc private func terminalToggled(_ sender: NSButton) {
-        preferences.terminalCompletionsEnabled = sender.state == .on
-    }
-
-    @objc private func autoCapToggled(_ sender: NSButton) {
-        preferences.autoCapitalization = sender.state == .on
-    }
-
-    @objc private func autoSpacingToggled(_ sender: NSButton) {
-        preferences.autoSpacing = sender.state == .on
-    }
-
-    @objc private func currentTextToggled(_ sender: NSButton) {
-        preferences.showCurrentText = sender.state == .on
-    }
-
-    @objc private func fadeToggled(_ sender: NSButton) {
-        preferences.inactivityFadeEnabled = sender.state == .on
-    }
-
-    @objc private func autoShowToggled(_ sender: NSButton) {
-        preferences.autoShowOnTextFocus = sender.state == .on
-    }
-
-    @objc private func dwellToggled(_ sender: NSButton) {
-        preferences.dwellEnabled = sender.state == .on
-    }
-
     @objc private func clearLearned() {
-        keyboardController.clearLearnedWords()
-    }
-
-    private static let switchKeys: [(id: String, title: String)] = [
-        ("space", L("Space")),
-        ("return", L("Return")),
-        ("f13", "F13"),
-        ("f14", "F14"),
-        ("f15", "F15"),
-    ]
-
-    @objc private func scanningToggled(_ sender: NSButton) {
-        preferences.scanningEnabled = sender.state == .on
-    }
-
-    @objc private func scanIntervalChanged(_ sender: NSSlider) {
-        preferences.scanInterval = sender.doubleValue
-    }
-
-    @objc private func switchKeySelected(_ sender: NSPopUpButton) {
-        let index = sender.indexOfSelectedItem
-        guard Self.switchKeys.indices.contains(index) else { return }
-        preferences.scanSwitchKey = Self.switchKeys[index].id
-    }
-
-    @objc private func themeSelected(_ sender: NSPopUpButton) {
-        let index = sender.indexOfSelectedItem
-        guard Theme.all.indices.contains(index) else { return }
-        preferences.themeID = Theme.all[index].id
-    }
-
-    @objc private func advanceKeySelected(_ sender: NSPopUpButton) {
-        let options = ["none"] + Self.switchKeys.map(\.id)
-        let index = sender.indexOfSelectedItem
-        guard options.indices.contains(index) else { return }
-        preferences.scanAdvanceKey = options[index]
-    }
-
-    @objc private func systemDictionaryToggled(_ sender: NSButton) {
-        preferences.systemDictionaryEnabled = sender.state == .on
-    }
-
-    @objc private func keyClickToggled(_ sender: NSButton) {
-        preferences.keyClickSound = sender.state == .on
+        let alert = NSAlert()
+        alert.messageText = L("Clear all learned words?")
+        alert.informativeText = L("Predictions fall back to the bundled word lists. This cannot be undone.")
+        alert.addButton(withTitle: L("Clear Learned Words"))
+        alert.addButton(withTitle: L("Cancel"))
+        alert.buttons.first?.hasDestructiveAction = true
+        guard let window else { return }
+        alert.beginSheetModal(for: window) { [weak self] response in
+            if response == .alertFirstButtonReturn {
+                self?.onClearLearnedWords()
+            }
+        }
     }
 
     @objc private func editProfiles() {
@@ -309,6 +287,80 @@ final class SettingsController: NSObject {
         let url = LayoutStore.userPanelsDirectory
         try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
         NSWorkspace.shared.open(url)
+    }
+}
+
+// MARK: - Bound controls
+
+private final class PreferenceCheckbox: NSButton {
+    var keyPath: ReferenceWritableKeyPath<Preferences, Bool>?
+}
+
+private final class PreferencePopup: NSPopUpButton {
+    var keyPath: ReferenceWritableKeyPath<Preferences, String>?
+    /// Stored value per menu item, parallel to the item titles.
+    var ids: [String] = []
+}
+
+/// A slider with its current value spelled out next to it.
+private final class PreferenceSliderRow: NSStackView {
+    let slider: NSSlider
+    var onChange: ((Double) -> Void)?
+    /// Report the value only once the drag ends; the label still follows it.
+    var appliesOnRelease = false
+
+    private let valueLabel = NSTextField(labelWithString: "")
+    private let format: (Double) -> String
+
+    init(value: Double, range: ClosedRange<Double>, format: @escaping (Double) -> String) {
+        self.format = format
+        slider = NSSlider(
+            value: value, minValue: range.lowerBound, maxValue: range.upperBound,
+            target: nil, action: nil)
+        super.init(frame: .zero)
+        slider.target = self
+        slider.action = #selector(changed)
+
+        valueLabel.font = .monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
+        valueLabel.textColor = .secondaryLabelColor
+        valueLabel.alignment = .right
+        valueLabel.stringValue = format(value)
+
+        orientation = .horizontal
+        spacing = 8
+        addArrangedSubview(slider)
+        addArrangedSubview(valueLabel)
+        NSLayoutConstraint.activate([
+            slider.widthAnchor.constraint(equalToConstant: 220),
+            valueLabel.widthAnchor.constraint(equalToConstant: 48),
+        ])
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
+
+    @objc private func changed() {
+        valueLabel.stringValue = format(slider.doubleValue)
+        let isDragging = NSApp.currentEvent.map {
+            $0.type == .leftMouseDown || $0.type == .leftMouseDragged
+        } ?? false
+        if !(appliesOnRelease && isDragging) {
+            onChange?(slider.doubleValue)
+        }
+    }
+}
+
+/// Resizes the window to the selected pane, like System Settings-era
+/// preference windows do.
+private final class SettingsTabViewController: NSTabViewController {
+    override func tabView(_ tabView: NSTabView, didSelect tabViewItem: NSTabViewItem?) {
+        super.tabView(tabView, didSelect: tabViewItem)
+        guard let window = view.window, let pane = tabViewItem?.view else { return }
+        let content = window.frameRect(forContentRect: NSRect(origin: .zero, size: pane.fittingSize))
+        var frame = window.frame
+        frame.origin.y += frame.height - content.height
+        frame.size = content.size
+        window.setFrame(frame, display: true, animate: true)
     }
 }
 #endif

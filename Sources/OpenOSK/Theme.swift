@@ -14,6 +14,15 @@ struct Theme {
     let secondaryText: NSColor
     let pressed: NSColor
     let pressedText: NSColor
+    /// Text drawn directly on the panel background (current-text bar);
+    /// `secondaryText` sits on key caps and may vanish against the panel.
+    let panelText: NSColor
+    /// Outline of keys and of the panel itself.
+    let border: NSColor
+    /// Marks the group or key the scan is currently on.
+    let scanHighlight: NSColor
+    /// Blur the desktop behind the panel instead of filling `background`.
+    var usesVibrancy = false
 
     var name: String { L(nameKey) }
 
@@ -26,7 +35,11 @@ struct Theme {
         text: .labelColor,
         secondaryText: .secondaryLabelColor,
         pressed: .controlAccentColor,
-        pressedText: .white
+        pressedText: .white,
+        panelText: .secondaryLabelColor,
+        border: .separatorColor,
+        scanHighlight: .systemOrange,
+        usesVibrancy: true
     )
 
     static let highContrast = Theme(
@@ -38,7 +51,11 @@ struct Theme {
         text: .black,
         secondaryText: NSColor(white: 0.25, alpha: 1),
         pressed: .systemYellow,
-        pressedText: .black
+        pressedText: .black,
+        panelText: .white,
+        border: .white,
+        // Orange on white keys is ~2:1; blue keeps the scan visible.
+        scanHighlight: NSColor(red: 0, green: 0.35, blue: 1, alpha: 1)
     )
 
     static let dark = Theme(
@@ -50,7 +67,10 @@ struct Theme {
         text: .white,
         secondaryText: NSColor(white: 0.65, alpha: 1),
         pressed: .systemBlue,
-        pressedText: .white
+        pressedText: .white,
+        panelText: NSColor(white: 0.7, alpha: 1),
+        border: NSColor(white: 0.32, alpha: 1),
+        scanHighlight: .systemOrange
     )
 
     static let light = Theme(
@@ -62,7 +82,10 @@ struct Theme {
         text: .black,
         secondaryText: NSColor(white: 0.4, alpha: 1),
         pressed: .systemBlue,
-        pressedText: .white
+        pressedText: .white,
+        panelText: NSColor(white: 0.35, alpha: 1),
+        border: NSColor(white: 0.78, alpha: 1),
+        scanHighlight: .systemOrange
     )
 
     static let all: [Theme] = [.system, .highContrast, .dark, .light]

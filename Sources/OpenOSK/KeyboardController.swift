@@ -73,6 +73,8 @@ final class KeyboardController: NSObject {
     private var modifierStates: [Modifier: ModifierState] = [:]
     private var terminalMode = false
     private var didPositionPanel = false
+    /// Id under which the main keyboard's position is remembered.
+    private static let keyboardPanelID = "keyboard"
     private var panelWasAutoShown = false
     private var inactivityTimer: Timer?
     private var activeProfile: AppProfile?
@@ -100,6 +102,13 @@ final class KeyboardController: NSObject {
         rebuildKeyboardView()
         observeEnvironment()
         refreshTerminalMode()
+        scanController.groupsProvider = { [weak self] in
+            guard let self else { return [] }
+            // Hidden keys must not be scanned: the user could not see them.
+            let keyboard = self.isPanelVisible ? self.keyboardView.scanGroups : []
+            return keyboard + self.panels.scanGroups
+        }
+        panels.onChange = { [weak self] in self?.scanController.reload() }
         applyScanningState()
 
         focusWatcher.onFocusChange = { [weak self] info in
@@ -122,13 +131,6 @@ final class KeyboardController: NSObject {
             selector: #selector(panelsEdited),
             name: .openOSKPanelsChanged,
             object: nil
-        )
-
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(panelDidMove),
-            name: NSWindow.didMoveNotification,
-            object: panel
         )
 
         // Discover bare commands on $PATH for terminal completion.
@@ -156,7 +158,6 @@ final class KeyboardController: NSObject {
     private func applyScanningState() {
         if preferences.scanningEnabled {
             scanController.interval = preferences.scanInterval
-            scanController.attach(to: keyboardView)
             let advanceKey = preferences.scanAdvanceKey
             scanController.start(
                 switchKey: preferences.scanSwitchKey,
@@ -183,32 +184,29 @@ final class KeyboardController: NSObject {
         }
     }
 
-    /// Remembers the panel position across launches (multi-display safe: the
-    /// saved origin is only used if it is still on a visible screen).
-    @objc private func panelDidMove(_ notification: Notification) {
-        guard didPositionPanel else { return }
-        UserDefaults.standard.set(
-            [panel.frame.origin.x, panel.frame.origin.y], forKey: "panelOrigin")
-    }
-
     // MARK: - Panel
 
     var isPanelVisible: Bool { panel.isVisible }
 
     func showPanel(automatically: Bool = false) {
         if !didPositionPanel {
-            positionAtBottomCenter()
+            if !panel.restoreOrigin(forID: Self.keyboardPanelID) {
+                positionAtBottomCenter()
+            }
+            panel.trackOrigin(as: Self.keyboardPanelID)
             didPositionPanel = true
         }
         panelWasAutoShown = automatically
         panel.orderFrontRegardless()
         noteActivity()
+        scanController.reload()
     }
 
     func hidePanel() {
         variantPopup.dismiss()
         panelWasAutoShown = false
         panel.orderOut(nil)
+        scanController.reload()
     }
 
     func togglePanel() {
@@ -217,19 +215,12 @@ final class KeyboardController: NSObject {
 
     func clearLearnedWords() {
         learnedStore.clear()
+        predictor.clearLearned()
         bigrams.clear()
+        updateSuggestions()
     }
 
     private func positionAtBottomCenter() {
-        if let saved = UserDefaults.standard.array(forKey: "panelOrigin") as? [Double],
-           saved.count == 2 {
-            let origin = NSPoint(x: saved[0], y: saved[1])
-            let restoredFrame = NSRect(origin: origin, size: panel.frame.size)
-            if NSScreen.screens.contains(where: { $0.visibleFrame.intersects(restoredFrame) }) {
-                panel.setFrameOrigin(origin)
-                return
-            }
-        }
         guard let screen = NSScreen.main else { return }
         let frame = panel.frame
         let visible = screen.visibleFrame
@@ -274,7 +265,7 @@ final class KeyboardController: NSObject {
         refreshKeyCaps()
         updateSuggestions()
         noteActivity()
-        scanController.attach(to: view)
+        scanController.reload()
     }
 
     // MARK: - Inactivity fade
@@ -349,12 +340,36 @@ final class KeyboardController: NSObject {
         }
     }
 
+    /// Reacts to the one preference that changed; rebuilding the views for
+    /// every change made sliders stutter and dropped hover and scan state.
     @objc private func preferencesChanged(_ notification: Notification) {
-        applyEffectiveLayout()
-        rebuildKeyboardView()
-        applyScanningState()
-        loadSystemDictionaryIfEnabled()
-        panels.rebuildOpenPanels()
+        guard let key = Preferences.changedKey(in: notification) else { return }
+        switch key {
+        case .layoutID:
+            if applyEffectiveLayout() {
+                rebuildKeyboardView()
+            }
+        case .scale, .themeID, .dwellEnabled, .dwellTime:
+            rebuildKeyboardView()
+            panels.rebuildOpenPanels()
+        case .showCurrentText:
+            rebuildKeyboardView()
+        case .opacity:
+            panels.setOpacity(CGFloat(preferences.opacity))
+            noteActivity()
+        case .inactivityFadeEnabled, .inactivityFadeDelay:
+            noteActivity()
+        case .scanningEnabled, .scanInterval, .scanSwitchKey, .scanAdvanceKey:
+            applyScanningState()
+        case .systemDictionaryEnabled:
+            loadSystemDictionaryIfEnabled()
+        case .predictionsEnabled, .terminalCompletionsEnabled:
+            updateSuggestions()
+        case .learningEnabled, .texterPasteMode, .wordlistLanguages, .autoCapitalization,
+             .autoSpacing, .autoShowOnTextFocus, .openPanelIDs, .keyClickSound, .panelOrigins:
+            // Read at the point of use.
+            break
+        }
     }
 
     @objc private func inputSourceChanged(_ notification: Notification) {
@@ -475,7 +490,8 @@ final class KeyboardController: NSObject {
         variantPopup.show(
             variants: variants,
             relativeTo: keyView,
-            metrics: keyboardView.metrics
+            metrics: keyboardView.metrics,
+            theme: keyboardView.theme
         ) { [weak self] variant in
             guard let self else { return }
             self.injector.typeText(variant)
@@ -586,7 +602,7 @@ final class KeyboardController: NSObject {
 
         let injector = self.injector
         let resolver = self.resolver
-        DispatchQueue.global(qos: .userInitiated).async {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             for step in macro.steps {
                 if let delay = step.delayMs, delay > 0 {
                     usleep(useconds_t(delay) * 1000)
@@ -609,12 +625,12 @@ final class KeyboardController: NSObject {
                     DispatchQueue.main.async { Self.open(target) }
                 }
                 if let panelID = step.panel {
-                    DispatchQueue.main.async { [weak self] in
+                    DispatchQueue.main.async {
                         self?.panels.toggle(panelID: panelID)
                     }
                 }
                 if let phrase = step.say {
-                    DispatchQueue.main.async { [weak self] in
+                    DispatchQueue.main.async {
                         self?.speech.speak(AVSpeechUtterance(string: phrase))
                     }
                 }

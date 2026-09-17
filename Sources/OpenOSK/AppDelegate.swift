@@ -20,7 +20,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         keyboardController = KeyboardController(injector: injector, resolver: resolver)
         texterController = TexterController(injector: injector, resolver: resolver)
-        settingsController = SettingsController(keyboardController: keyboardController)
+        settingsController = SettingsController(
+            onClearLearnedWords: { [weak self] in self?.keyboardController.clearLearnedWords() })
         statusBarController = StatusBarController(appDelegate: self)
 
         keyboardController.showPanel()
