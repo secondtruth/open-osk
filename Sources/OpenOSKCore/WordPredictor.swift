@@ -7,12 +7,17 @@ public final class WordPredictor {
         var children: [Character: Node] = [:]
         /// Position in the base word list; lower = more frequent.
         var rank: Int?
-        /// How often the user typed this word.
-        var learnedCount = 0
+        /// Lowest rank anywhere below (and including) this node. Lets the
+        /// search walk straight to the most frequent words instead of
+        /// exploring the subtree, which for short prefixes is most of the trie.
+        var bestRank = Int.max
     }
 
     private let root = Node()
     private var nextRank = 0
+    /// How often the user typed each word. Kept beside the trie: the set is
+    /// small, and it has to be cleared and ranked independently of list order.
+    private var learnedCounts: [String: Int] = [:]
     /// Large sorted word list used as a low-priority fallback (kept out of
     /// the trie to save memory; e.g. /usr/share/dict/words).
     private var fallbackWords: [String] = []
@@ -25,12 +30,29 @@ public final class WordPredictor {
         for word in words {
             let normalized = word.trimmingCharacters(in: .whitespaces)
             guard !normalized.isEmpty, !normalized.hasPrefix("#") else { continue }
-            let node = node(for: normalized.lowercased(), createIfMissing: true)!
-            if node.rank == nil {
-                node.rank = nextRank
-                nextRank += 1
+            insert(normalized.lowercased())
+        }
+    }
+
+    private func insert(_ word: String) {
+        var path = [root]
+        for character in word {
+            let parent = path[path.count - 1]
+            if let child = parent.children[character] {
+                path.append(child)
+            } else {
+                let child = Node()
+                parent.children[character] = child
+                path.append(child)
             }
         }
+        guard let node = path.last, node.rank == nil else { return }
+        node.rank = nextRank
+        // Ranks only grow, so a node's best rank is settled by its first word.
+        for ancestor in path where ancestor.bestRank == Int.max {
+            ancestor.bestRank = nextRank
+        }
+        nextRank += 1
     }
 
     /// Loads bundled word lists, e.g. `["de", "en"]`.
@@ -69,8 +91,12 @@ public final class WordPredictor {
     public func learn(_ word: String, count: Int = 1) {
         let normalized = word.lowercased()
         guard normalized.count >= 2 else { return }
-        let node = node(for: normalized, createIfMissing: true)!
-        node.learnedCount += count
+        learnedCounts[normalized, default: 0] += count
+    }
+
+    /// Forgets everything learned; the base word lists stay loaded.
+    public func clearLearned() {
+        learnedCounts = [:]
     }
 
     // MARK: - Prediction
@@ -80,15 +106,24 @@ public final class WordPredictor {
     public func suggestions(forPrefix prefix: String, limit: Int = 5) -> [String] {
         guard prefix.count >= 1 else { return [] }
         let lowered = prefix.lowercased()
-        guard let start = node(for: lowered, createIfMissing: false) else { return [] }
 
-        var results: [(word: String, learned: Int, rank: Int)] = []
-        collect(from: start, prefix: lowered, into: &results, budget: 500)
+        let learnedMatches = learnedCounts.filter { $0.key.hasPrefix(lowered) }
+        var results: [(word: String, learned: Int, rank: Int)] = learnedMatches.map {
+            ($0.key, $0.value, node(for: $0.key)?.rank ?? Int.max)
+        }
+        if let start = node(for: lowered) {
+            // Learned words may displace list words, so fetch enough of both.
+            let ranked = mostFrequent(from: start, prefix: lowered, count: limit + learnedMatches.count)
+            results += ranked
+                .filter { learnedMatches[$0.word] == nil }
+                .map { ($0.word, 0, $0.rank) }
+        }
 
         results.sort {
             if $0.learned != $1.learned { return $0.learned > $1.learned }
             if $0.rank != $1.rank { return $0.rank < $1.rank }
-            return $0.word.count < $1.word.count
+            if $0.word.count != $1.word.count { return $0.word.count < $1.word.count }
+            return $0.word < $1.word
         }
 
         var suggestions = results
@@ -132,23 +167,42 @@ public final class WordPredictor {
         return matches
     }
 
-    private func collect(
-        from node: Node,
-        prefix: String,
-        into results: inout [(word: String, learned: Int, rank: Int)],
-        budget: Int
-    ) {
-        var remaining = budget
-        var stack: [(Node, String)] = [(node, prefix)]
-        while let (current, word) = stack.popLast(), remaining > 0 {
-            remaining -= 1
-            if current.rank != nil || current.learnedCount > 0 {
-                results.append((word, current.learnedCount, current.rank ?? Int.max))
-            }
-            for (character, child) in current.children {
-                stack.append((child, word + String(character)))
+    /// Best-first walk ordered by `bestRank`: yields the `count` most
+    /// frequent list words below `node`, most frequent first.
+    private func mostFrequent(
+        from node: Node, prefix: String, count: Int
+    ) -> [(word: String, rank: Int)] {
+        enum Entry {
+            case subtree(Node, String)
+            case word(String, Int)
+        }
+        func priority(_ entry: Entry) -> Int {
+            switch entry {
+            case .subtree(let node, _): return node.bestRank
+            case .word(_, let rank): return rank
             }
         }
+
+        var found: [(word: String, rank: Int)] = []
+        var frontier: [Entry] = [.subtree(node, prefix)]
+        // The frontier holds a handful of entries per visited level, so a
+        // linear minimum scan is cheaper than maintaining a heap.
+        while found.count < count,
+              let next = frontier.indices.min(by: { priority(frontier[$0]) < priority(frontier[$1]) }),
+              priority(frontier[next]) != Int.max {
+            switch frontier.remove(at: next) {
+            case .word(let word, let rank):
+                found.append((word, rank))
+            case .subtree(let node, let word):
+                if let rank = node.rank {
+                    frontier.append(.word(word, rank))
+                }
+                for (character, child) in node.children where child.bestRank != Int.max {
+                    frontier.append(.subtree(child, word + String(character)))
+                }
+            }
+        }
+        return found
     }
 
     private func applyCapitalization(of prefix: String, to word: String) -> String {
@@ -162,18 +216,11 @@ public final class WordPredictor {
         return word
     }
 
-    private func node(for word: String, createIfMissing: Bool) -> Node? {
+    private func node(for word: String) -> Node? {
         var current = root
         for character in word {
-            if let child = current.children[character] {
-                current = child
-            } else if createIfMissing {
-                let child = Node()
-                current.children[character] = child
-                current = child
-            } else {
-                return nil
-            }
+            guard let child = current.children[character] else { return nil }
+            current = child
         }
         return current
     }
