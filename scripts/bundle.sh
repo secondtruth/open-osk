@@ -9,15 +9,18 @@ cd "$(dirname "$0")/.."
 VERSION="$(grep -m1 'let appVersion' Sources/OpenOSK/main.swift | sed 's/.*"\(.*\)"/\1/')"
 APP="build/OpenOSK.app"
 
-swift build -c release
+# Same variable as the Makefile: build products may live off the checkout.
+SCRATCH="${SCRATCH_PATH:-.build}"
+swift build -c release --scratch-path "$SCRATCH"
+BIN="$(swift build -c release --scratch-path "$SCRATCH" --show-bin-path)"
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
-cp .build/release/openosk "$APP/Contents/MacOS/OpenOSK"
-cp -R .build/release/OpenOSK_OpenOSKCore.bundle "$APP/Contents/Resources/"
-if [ -d .build/release/OpenOSK_OpenOSK.bundle ]; then
-	cp -R .build/release/OpenOSK_OpenOSK.bundle "$APP/Contents/Resources/"
+cp "$BIN/openosk" "$APP/Contents/MacOS/OpenOSK"
+cp -R "$BIN/OpenOSK_OpenOSKCore.bundle" "$APP/Contents/Resources/"
+if [ -d "$BIN/OpenOSK_OpenOSK.bundle" ]; then
+	cp -R "$BIN/OpenOSK_OpenOSK.bundle" "$APP/Contents/Resources/"
 fi
 if [ -f Assets/OpenOSK.icns ]; then
 	cp Assets/OpenOSK.icns "$APP/Contents/Resources/"

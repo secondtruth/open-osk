@@ -13,6 +13,9 @@ make bundle    # release build + assemble build/OpenOSK.app via scripts/bundle.s
 make clean
 ```
 
+Every target honours `SCRATCH_PATH` (default `.build`), SwiftPM's scratch
+directory.
+
 - `.build/debug/openosk --snapshot <dir>` renders the keyboard in every theme
   and each settings pane to PNGs without opening a window — look at these after
   any visual change. It reads the real user preferences, and the System
@@ -103,8 +106,12 @@ Two targets plus tests:
 
 - On a Synology Drive (File Provider) checkout `swift test` fails at the
   codesign step ("resource fork, Finder information, or similar detritus not
-  allowed"). Keep `.build` off the mount, e.g. as a symlink to a local
-  directory; `.gitignore` lists `.build` without a trailing slash for that.
+  allowed"). Build off the volume with `SCRATCH_PATH`, which the Makefile and
+  `scripts/bundle.sh` pass to SwiftPM as `--scratch-path`:
+  `make test SCRATCH_PATH=~/Entwicklung/Caches/OpenOSK/.build` (or export it).
+  The binary is then at `$SCRATCH_PATH/debug/openosk`. A `.build` symlink does
+  not hold on Synology Drive — the client restores the server's directory and
+  renames the symlink away.
 - `KeyboardController.preferencesChanged` switches exhaustively over
   `Preferences.Key`: a new preference must be given a case there, and only
   preferences that change the view tree may trigger `rebuildKeyboardView()`.
