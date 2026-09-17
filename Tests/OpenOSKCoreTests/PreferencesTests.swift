@@ -9,36 +9,51 @@ import Testing
         return Preferences(defaults: UserDefaults(suiteName: suite)!)
     }
 
-    @Test func changeNotificationNamesTheChangedKey() {
-        let preferences = makePreferences()
-        var received: [Preferences.Key] = []
-        let observer = NotificationCenter.default.addObserver(
-            forName: Preferences.didChangeNotification, object: preferences, queue: nil
-        ) { notification in
-            if let key = Preferences.changedKey(in: notification) {
-                received.append(key)
+    /// Collects the keys `preferences` announces. The sender is matched here
+    /// rather than through the observer's `object:` filter, which on Linux
+    /// never matches a sender that is not an `NSObject`; other suites post
+    /// the same notification from their own instances in parallel.
+    private final class ChangeLog: @unchecked Sendable {
+        private(set) var keys: [Preferences.Key] = []
+        private var observer: NSObjectProtocol?
+
+        init(of preferences: Preferences) {
+            observer = NotificationCenter.default.addObserver(
+                forName: Preferences.didChangeNotification, object: nil, queue: nil
+            ) { [weak self, weak preferences] notification in
+                guard (notification.object as AnyObject?) === preferences,
+                      let key = Preferences.changedKey(in: notification)
+                else { return }
+                self?.keys.append(key)
             }
         }
-        defer { NotificationCenter.default.removeObserver(observer) }
+
+        deinit {
+            if let observer { NotificationCenter.default.removeObserver(observer) }
+        }
+    }
+
+    @Test func changeNotificationNamesTheChangedKey() {
+        let preferences = makePreferences()
+        let log = ChangeLog(of: preferences)
 
         preferences.opacity = 0.5
         preferences.themeID = "dark"
 
-        #expect(received == [.opacity, .themeID])
+        #expect(log.keys == [.opacity, .themeID])
     }
 
     @Test func unchangedValuesDoNotNotify() {
         let preferences = makePreferences()
         preferences.scale = 1.2
-        var count = 0
-        let observer = NotificationCenter.default.addObserver(
-            forName: Preferences.didChangeNotification, object: preferences, queue: nil
-        ) { _ in count += 1 }
-        defer { NotificationCenter.default.removeObserver(observer) }
+        let log = ChangeLog(of: preferences)
 
         preferences.scale = 1.2
+        #expect(log.keys.isEmpty)
 
-        #expect(count == 0)
+        // Guards against passing only because nothing is ever logged.
+        preferences.scale = 1.3
+        #expect(log.keys == [.scale])
     }
 
     @Test func panelOriginRoundTrips() {
